@@ -1,9 +1,16 @@
 
+
 <#
 
 .SYNOPSIS
 
 Just a POC that demonstrate Powershell could be run remotely without WinRM & PSSession
+
+
+.NOTES
+
+Script must be executed with administrator privileges on local machine
+Account used to execute this script must have administrator privileges on targeted machine  
 
 
 .EXAMPLE
@@ -71,8 +78,8 @@ PS C:\Users\POKEDEX>
 
 Param(
 
-  [Parameter(Mandatory = $false)] 
-  [String] $ComputerName = "localhost",
+  [Parameter(Mandatory = $true)] 
+  [String] $ComputerName,
 
   [Parameter(Mandatory = $true)] 
   [ScriptBlock] $ScriptBlock
@@ -96,33 +103,46 @@ Function Invoke-ScriptBlock() {
 
     Try {
 
-        $PipeClient.Connect()
 
-        $PipeReader = New-Object System.IO.StreamReader($PipeClient)
+        [IO.StreamReader] $PipeReader = New-Object System.IO.StreamReader($PipeClient)
 
-        $PipeWriter = New-Object System.IO.StreamWriter($PipeClient)
+        [IO.StreamWriter] $PipeWriter = New-Object System.IO.StreamWriter($PipeClient)
         $PipeWriter.AutoFlush = $true
 
         $PipeWriter.WriteLine($ScriptBlock.ToString())
-        $PipeWriter.WriteLine("EOS")
+        $PipeWriter.WriteLine("---EOS---")
 
-        $Builder = [Text.StringBuilder]::new()
+        [Text.StringBuilder] $Builder = [Text.StringBuilder]::new()
 
-        While ( ($Incoming = $PipeReader.ReadLine()) -ne "EOS") { 
+        While ( ($Incoming = $PipeReader.ReadLine()) -ne "---EOS---") { 
 
             [Void]$Builder.AppendLine($Incoming) 
     
         }
 
-        [Void] $PipeWriter.Dispose()
-        [Void] $PipeReader.Dispose()
-        [Void] $PipeClient.Dispose()
-
         Return $Builder.ToString()
+
 
     } Catch {
 
+
+        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+
         Return $null
+
+
+    } Finally {
+
+
+        foreach ($Disposable in @($PipeWriter, $PipeReader, $PipeClient)) {
+
+            if ($null -ne $Disposable) {
+
+                [Void] $Disposable.Dispose()
+
+            }
+
+        }
 
     }
 
@@ -140,14 +160,21 @@ Function Create-PipeClient() {
    
     )
 
+
     Try {
+
 
         [IO.Pipes.NamedPipeClientStream] $PipeClient = new-object System.IO.Pipes.NamedPipeClientStream($ComputerName, 'ScriptBlock', [System.IO.Pipes.PipeDirection]::InOut, [System.IO.Pipes.PipeOptions]::None, [System.Security.Principal.TokenImpersonationLevel]::Anonymous)
 
+        $PipeClient.Connect()
+
         Return $PipeClient
+
 
     } Catch {
 
+        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+        
         Return $null
         
     }
@@ -162,157 +189,60 @@ Function Create-PipeServer() {
     Param(
 
         [Parameter(Mandatory=$true)]
-        [Management.ManagementClass] $ManagementClass
+        [String] $ComputerName
    
     )
 
 
     Try {
 
-        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [System.IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; While ( ($Incoming = $PipeReader.ReadLine()) -ne 'EOS') {  [Void]$Builder.AppendLine($Incoming) } ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [System.Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [System.Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('EOS') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
 
-        [String] $Command = "&{ $($ScriptBlock.ToString()) }"
+        [Management.ManagementOptions] $ConnectionOptions = New-Object System.Management.ConnectionOptions
 
-        [String] $CmdLine = "PowerShell.exe -command $Command"
+        $ConnectionOptions.Authentication = [System.Management.AuthenticationLevel]::Packet
 
-        [Management.ManagementBaseObject] $Process = Create-Process -ManagementClass $ManagementClass -CmdLine $CmdLine
+        $ConnectionOptions.Impersonation = [System.Management.ImpersonationLevel]::Impersonate
 
-        Return $Process
+        $ConnectionOptions.EnablePrivileges = $true
 
-    } Catch {
-
-        Return $null
-        
-    }
-
-}
-
-
-
-
-Function Create-ManagementEventWatcher() {
-
-
-    Param(
-
-        [Parameter(Mandatory=$true)]
-        [Management.ManagementScope] $ManagementScope,
-
-        [Parameter(Mandatory=$true)]
-        [Management.ManagementBaseObject] $Process
-   
-    )
-
-    Try {
-
-        [Management.WQLEventQuery] $WqlEventQuery = New-Object System.Management.WQLEventQuery("SELECT * From WIN32_ProcessStopTrace WHERE ProcessID=$($Process.ProcessID)")
-
-        [Management.ManagementEventWatcher] $ManagementEventWatcher = New-Object System.Management.ManagementEventWatcher($ManagementScope, $WqlEventQuery)
-
-        [Management.EventWatcherOptions] $Options = New-Object System.Management.EventWatcherOptions
-
-        $Options.TimeOut = [TimeSpan]"0.1:0:0"
-
-        $ManagementEventWatcher.Options = $Options
-
-        Return $ManagementEventWatcher
-
-    } Catch {
-
-        Return $null
-
-    }
-
-}
-
-
-
-
-Function Create-Process() {
-
-
-    Param(
-
-        [Parameter(Mandatory=$true)]
-        [Management.ManagementClass] $ManagementClass,
-
-        [Parameter(Mandatory=$true)]
-        [String] $CmdLine
-   
-    )
-
-    Try {
-
-        [Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
-        
-        Return $Process
-
-    } Catch {
-
-        Return $null
-
-    }
-
-}
-
-
-
-
-Function Create-ManagementClass() {
-
-
-    Param(
-
-        [Parameter(Mandatory=$true)]
-        [String]$ComputerName,
-
-        [Parameter(Mandatory=$true)]
-        [Management.ManagementScope] $ManagementScope
-   
-    )
-
-
-    Try {
+        [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope("\\$ComputerName\root\cimV2", $ConnectionOptions)
 
         [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions($null, [System.TimeSpan]::MaxValue, $true)
 
         [Management.ManagementClass] $ManagementClass = New-Object System.Management.ManagementClass($ManagementScope, "\\$ComputerName\root\cimV2:Win32_Process", $ObjectGetOptions)
 
-        Return $ManagementClass
+        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [System.IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; [Void]$Builder.AppendLine('Try {') ; While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) } ; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }') ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [System.Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [System.Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('---EOS---') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
+
+        [String] $Command = "&{ $($ScriptBlock.ToString()) }"
+
+        [String] $CmdLine = "PowerShell.exe -command $Command"
+
+        [Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
+        
+        Return $Process
+
 
     } Catch {
 
-        Return $null
 
-    }
-
-}
-
-
-
-
-Function Create-ManagementScope() {
-
-
-    Param(
-
-        [Parameter(Mandatory=$true)]
-        [String]$ComputerName,
-
-        [Parameter(Mandatory=$true)]
-        [Management.ManagementOptions] $ConnectionOptions
-   
-    )
-
-    Try {
-
-        [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope("\\$ComputerName\root\cimV2", $ConnectionOptions)
-
-        Return $ManagementScope
-
-    } Catch {
+        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
 
         Return $null
+
+        
+    } Finally {
+
+
+        foreach ($Disposable in @($Process, $ManagementClass)) {
+
+            if ($null -ne $Disposable) {
+
+                [Void] $Disposable.Dispose()
+
+            }
+
+        }
+
 
     }
 
@@ -331,9 +261,10 @@ Function Is-Online() {
    
     )
 
+
     Try {
-     
-        [Bool] $Result = Test-Connection -computername $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+   
+        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -348,103 +279,33 @@ Function Is-Online() {
 
 
 
-Function Create-ConnectionOptions() {
+if (Is-Online -ComputerName $ComputerName) {
 
 
-    Try {
-
-        [Management.ManagementOptions] $ConnectionOptions = New-Object System.Management.ConnectionOptions
-
-        $ConnectionOptions.Authentication = [System.Management.AuthenticationLevel]::Packet
-
-        $ConnectionOptions.Impersonation = [System.Management.ImpersonationLevel]::Impersonate
-
-        $ConnectionOptions.EnablePrivileges = $true
-
-        Return $ConnectionOptions
-
-    } Catch {
-
-        Return $null
-
-    }
-
-}
+    if ((Create-PipeServer -ComputerName $ComputerName) -ne $null) {
 
 
+        [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
 
 
-[Management.ManagementOptions] $ConnectionOptions = Create-ConnectionOptions
+        if ($null -ne $PipeClient) {  
+           
 
-if ($null -ne $ConnectionOptions) {
-
-
-    if (Is-Online -ComputerName $ComputerName) {
+            if ($PipeClient.IsConnected) {
 
 
-        [Management.ManagementScope] $ManagementScope = Create-ManagementScope -ComputerName $ComputerName -ConnectionOptions $ConnectionOptions
-
-
-        if ($null -ne $ManagementScope) {
-
-
-            [Management.ManagementClass] $ManagementClass = Create-ManagementClass -ComputerName $ComputerName -ManagementScope $ManagementScope
-
-
-            if ($null -ne $ManagementClass) {
-
-                 
-                if ((Create-PipeServer -ManagementClass $ManagementClass) -ne $null) {
-
-
-                    [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
-
-
-                    if ($null -ne $PipeClient) {
-
-
-                        $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
-
-                        Return $Return
-
-
-                    } else {
-
-
-                        Write-Error "Failed to create named pipe client"
-
-                        Return $null
-
-
-                    }
-
-
-                } else {
-
-
-                    Write-Error "Failed to create named pipe server on $ComputerName"
-
-                    Return $null
-
-
-                }
-
-
-            } else {
-
-
-                Write-Error "ManagementClass creation error for $ComputerName"
-
-                Return $null
-
+                $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
 
             }
+
+            [Void] $PipeClient.Dispose()
+
+
+            Return $Return
 
 
         } else {
 
-
-            Write-Error "ManagementScope creation error on $ComputerName"
 
             Return $null
 
@@ -455,23 +316,15 @@ if ($null -ne $ConnectionOptions) {
     } else {
 
 
-        Write-Output "$ComputerName not online"
-
-        Return $null
-
+            Return $null
 
     }
 
 
-} else {
+}  else {
 
-
-    Write-Error "ConnectionOptions creation error"
-
-    Return $null
-
+    Write-Host "$ComputerName is not online" -ForegroundColor Yellow
 
 }
-
 
 
