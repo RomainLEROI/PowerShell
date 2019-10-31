@@ -1,16 +1,15 @@
-
-
 <#
 
 .SYNOPSIS
 
-Just a POC that demonstrate Powershell could be run remotely without WinRM & PSSession
+This script is just a POC that demonstrates that powershell can be executed remotely without WinRM & PSRemoting
 
 
 .NOTES
 
-Script must be executed with administrator privileges on local machine
-Account used to execute this script must have administrator privileges on targeted machine  
+
+Script must be executed with an account that has the adminstrator privileges on both local and remote computers
+The local machine process must be elevated
 
 
 .EXAMPLE
@@ -35,10 +34,7 @@ Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
     571      38    61488      74200       1,05  22132   2 powershell
 
 
-PS C:\Users\POKEDEX>.\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock {
->> Get-Service | Where-Object { $_.Name -eq "WinRM" } | Format-List
->> Get-Process | Where-Object { $_.ProcessName -eq "Powershell" } | Format-List
->> }
+PS C:\Users\POKEDEX>.\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock { Get-Service | Where-Object { $_.Name -eq "WinRM" } } | Format-List
 
 
 Name                : WinRM
@@ -50,22 +46,6 @@ CanPauseAndContinue : False
 CanShutdown         : False
 CanStop             : False
 ServiceType         : Win32ShareProcess
-
-
-
-
-
-Id      : 12492
-Handles : 533
-CPU     : 0,46875
-SI      : 0
-Name    : powershell
-
-Id      : 22132
-Handles : 571
-CPU     : 1,046875
-SI      : 2
-Name    : powershell
 
 
 
@@ -93,7 +73,7 @@ Function Invoke-ScriptBlock() {
 
     Param(
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [IO.Pipes.NamedPipeClientStream] $PipeClient,
 
         [Parameter(Mandatory = $true)] 
@@ -155,8 +135,8 @@ Function Create-PipeClient() {
 
     Param(
 
-        [Parameter(Mandatory=$true)]
-        [String]$ComputerName
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName
    
     )
 
@@ -188,7 +168,7 @@ Function Create-PipeServer() {
 
     Param(
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String] $ComputerName
    
     )
@@ -233,16 +213,15 @@ Function Create-PipeServer() {
     } Finally {
 
 
-        foreach ($Disposable in @($Process, $ManagementClass)) {
+        foreach ($Disposable in @($ManagementClass, $Process)) {
 
             if ($null -ne $Disposable) {
-
-                [Void] $Disposable.Dispose()
-
+   
+                [Void] $Disposable.Dispose() 
+                    
             }
 
         }
-
 
     }
 
@@ -253,11 +232,10 @@ Function Create-PipeServer() {
 
 Function Is-Online() {
 
-
     Param(
 
-        [Parameter(Mandatory=$true)]
-        [String]$ComputerName
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName
    
     )
 
@@ -282,7 +260,7 @@ Function Is-Online() {
 if (Is-Online -ComputerName $ComputerName) {
 
 
-    if ((Create-PipeServer -ComputerName $ComputerName) -ne $null) {
+    if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
 
 
         [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
@@ -316,7 +294,7 @@ if (Is-Online -ComputerName $ComputerName) {
     } else {
 
 
-            Return $null
+        Return $null
 
     }
 
@@ -326,5 +304,4 @@ if (Is-Online -ComputerName $ComputerName) {
     Write-Host "$ComputerName is not online" -ForegroundColor Yellow
 
 }
-
 
