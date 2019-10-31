@@ -1,14 +1,14 @@
-
-<#
+#
 
 .SYNOPSIS
 
-Create run and delete scheduled task on remote computer and get execution exit code back
+this script creates, runs and deletes scheduled task on remote computer and gets exit code back
 
 
 .NOTES
 
-Account used to execute this script must have administrator privileges on targeted machine  
+Script must be executed with an account that has the adminstrator privileges on both local and remote computers
+No need to elevate process on local machine
 Scheduled task can't execute things from network if system account is used
 
 
@@ -28,20 +28,20 @@ PS C:\Users\POKEDEX>
 Param (
 
     [Parameter(Mandatory = $false)]
-    [String]$ComputerName = "localhost",
+    [String] $ComputerName = "localhost",
 
     [Parameter(Mandatory = $true)]
     [ValidateSet("S-1-5-18", "S-1-5-32-544", "S-1-5-32-545")]
-    [String]$Sid,
+    [String] $Sid,
 
     [Parameter(Mandatory = $true)]
-    [String]$TaskName,
+    [String] $TaskName,
 
     [Parameter(Mandatory = $true)]
-    [String]$Path,
+    [String] $Path,
 
     [Parameter(Mandatory = $false)]
-    [String]$Arguments = [String]::Empty
+    [String] $Arguments = [String]::Empty
 
 )
 
@@ -52,8 +52,8 @@ Function Is-Online() {
 
     Param(
 
-        [Parameter(Mandatory=$true)]
-        [String]$ComputerName
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName
    
     )
 
@@ -225,25 +225,4 @@ if (Is-Online -ComputerName $ComputerName) {
     Write-Host "$ComputerName is not online" -ForegroundColor Yellow
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
