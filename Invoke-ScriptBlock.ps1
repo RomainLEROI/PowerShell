@@ -7,7 +7,6 @@ This script is just a POC that demonstrates that powershell can be executed remo
 
 .NOTES
 
-
 Script must be executed with an account that has the adminstrator privileges on both local and remote computers
 The local machine process must be elevated
 
@@ -257,29 +256,41 @@ Function Is-Online() {
 
 
 
-if (Is-Online -ComputerName $ComputerName) {
+if ((New-Object Security.Principal.WindowsPrincipal ([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
 
-    if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
+    if (Is-Online -ComputerName $ComputerName) {
 
 
-        [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
+        if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
 
 
-        if ($null -ne $PipeClient) {  
+            [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
+
+
+            if ($null -ne $PipeClient) {  
            
 
-            if ($PipeClient.IsConnected) {
+                if ($PipeClient.IsConnected) {
 
 
-                $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
+                    $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
+
+                }
+
+                [Void] $PipeClient.Dispose()
+
+
+                Return $Return
+
+
+            } else {
+
+
+                Return $null
+
 
             }
-
-            [Void] $PipeClient.Dispose()
-
-
-            Return $Return
 
 
         } else {
@@ -287,21 +298,19 @@ if (Is-Online -ComputerName $ComputerName) {
 
             Return $null
 
-
         }
 
 
-    } else {
+    }  else {
 
-
-        Return $null
+        Write-Host "$ComputerName is not online" -ForegroundColor Yellow
 
     }
+    
 
+} else {
 
-}  else {
-
-    Write-Host "$ComputerName is not online" -ForegroundColor Yellow
+    Write-Host "The requested operation requires elevation" -ForegroundColor Yellow
 
 }
 
