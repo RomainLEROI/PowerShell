@@ -7,7 +7,6 @@ This script is just a POC that demonstrates that powershell can be executed remo
 
 .NOTES
 
-
 Script must be executed with an account that has the adminstrator privileges on both local and remote computers
 The local machine process must be elevated
 
