@@ -7,6 +7,7 @@ This script is just a POC that demonstrates that powershell can be executed remo
 
 .NOTES
 
+
 Script must be executed with an account that has the adminstrator privileges on both local and remote computers
 The local machine process must be elevated
 
@@ -86,6 +87,7 @@ Function Invoke-ScriptBlock() {
         [IO.StreamReader] $PipeReader = New-Object System.IO.StreamReader($PipeClient)
 
         [IO.StreamWriter] $PipeWriter = New-Object System.IO.StreamWriter($PipeClient)
+
         $PipeWriter.AutoFlush = $true
 
         $PipeWriter.WriteLine($ScriptBlock.ToString())
@@ -177,18 +179,34 @@ Function Create-PipeServer() {
 
 
         [Management.ManagementOptions] $ConnectionOptions = New-Object System.Management.ConnectionOptions
-
+        
         $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
 
         $ConnectionOptions.Impersonation = [Management.ImpersonationLevel]::Impersonate
 
         $ConnectionOptions.EnablePrivileges = $true
 
-        [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope("\\$ComputerName\root\cimV2", $ConnectionOptions)
+        [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope
 
-        [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions($null, [TimeSpan]::MaxValue, $true)
+        $ManagementScope.Path = "\\$ComputerName\root\cimV2"
 
-        [Management.ManagementClass] $ManagementClass = New-Object System.Management.ManagementClass($ManagementScope, "\\$ComputerName\root\cimV2:Win32_Process", $ObjectGetOptions)
+        $ManagementScope.Options = $ConnectionOptions
+
+        [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions
+
+        $ObjectGetOptions.Context = $null
+
+        $ObjectGetOptions.Timeout = [TimeSpan]::MaxValue
+
+        $ObjectGetOptions.UseAmendedQualifiers = $true
+
+        [Management.ManagementClass] $ManagementClass = New-Object System.Management.ManagementClass
+
+        $ManagementClass.Scope = $ManagementScope
+
+        $ManagementClass.Path = "\\$ComputerName\root\cimV2:Win32_Process"
+
+        $ManagementClass.Options = $ObjectGetOptions
 
         [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; [Void]$Builder.AppendLine('Try {') ; While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) } ; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }') ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('---EOS---') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
 
