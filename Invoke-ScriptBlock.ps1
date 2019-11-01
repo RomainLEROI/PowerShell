@@ -191,8 +191,6 @@ Function Create-PipeServer() {
 
         [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions
 
-        $ObjectGetOptions.Context = $null
-
         $ObjectGetOptions.Timeout = [TimeSpan]::MaxValue
 
         $ObjectGetOptions.UseAmendedQualifiers = $true
