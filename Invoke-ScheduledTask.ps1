@@ -121,15 +121,6 @@ if (Is-Online -ComputerName $ComputerName) {
         }
 
 
-        [Int] $TaskLogon = $LogonType.TASK_LOGON_INTERACTIVE_TOKEN
-
-        if ($Sid -eq $Id.SYSTEM) {
-
-          $TaskLogon = $LogonType.TASK_LOGON_GROUP
-    
-        }
-
-
         [__ComObject] $Service = New-Object -ComObject ("Schedule.Service")
 
         [Void] $Service.Connect($ComputerName)
@@ -144,9 +135,25 @@ if (Is-Online -ComputerName $ComputerName) {
 
         $TaskDefinition.Principal.GroupId = $Sid
 
-        $TaskDefinition.Principal.LogonType = $TaskLogon
+        if ($Sid -eq $Id.SYSTEM) {
 
-        $TaskDefinition.Principal.RunLevel = $RunLevel.TASK_RUNLEVEL_HIGHEST
+            $TaskDefinition.Principal.LogonType = $LogonType.TASK_LOGON_GROUP
+
+        } else {
+
+            $TaskDefinition.Principal.LogonType = $LogonType.TASK_LOGON_INTERACTIVE_TOKEN
+
+        }
+
+        if ($Sid -eq $Id.USERS) {
+
+            $TaskDefinition.Principal.RunLevel = $RunLevel.TASK_RUNLEVEL_LUA
+
+        } else {
+
+            $TaskDefinition.Principal.RunLevel = $RunLevel.TASK_RUNLEVEL_HIGHEST
+
+        }
 
         $TaskDefinition.Settings.Enabled = $true
 
