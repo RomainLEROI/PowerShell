@@ -143,7 +143,7 @@ Function Create-PipeClient() {
     Try {
 
 
-        [IO.Pipes.NamedPipeClientStream] $PipeClient = new-object System.IO.Pipes.NamedPipeClientStream($ComputerName, 'ScriptBlock', [System.IO.Pipes.PipeDirection]::InOut, [System.IO.Pipes.PipeOptions]::None, [System.Security.Principal.TokenImpersonationLevel]::Anonymous)
+        [IO.Pipes.NamedPipeClientStream] $PipeClient = new-object System.IO.Pipes.NamedPipeClientStream($ComputerName, 'ScriptBlock', [IO.Pipes.PipeDirection]::InOut, [IO.Pipes.PipeOptions]::None, [Security.Principal.TokenImpersonationLevel]::Anonymous)
 
         $PipeClient.Connect()
 
@@ -178,19 +178,19 @@ Function Create-PipeServer() {
 
         [Management.ManagementOptions] $ConnectionOptions = New-Object System.Management.ConnectionOptions
 
-        $ConnectionOptions.Authentication = [System.Management.AuthenticationLevel]::Packet
+        $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
 
-        $ConnectionOptions.Impersonation = [System.Management.ImpersonationLevel]::Impersonate
+        $ConnectionOptions.Impersonation = [Management.ImpersonationLevel]::Impersonate
 
         $ConnectionOptions.EnablePrivileges = $true
 
         [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope("\\$ComputerName\root\cimV2", $ConnectionOptions)
 
-        [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions($null, [System.TimeSpan]::MaxValue, $true)
+        [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions($null, [TimeSpan]::MaxValue, $true)
 
         [Management.ManagementClass] $ManagementClass = New-Object System.Management.ManagementClass($ManagementScope, "\\$ComputerName\root\cimV2:Win32_Process", $ObjectGetOptions)
 
-        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [System.IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; [Void]$Builder.AppendLine('Try {') ; While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) } ; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }') ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [System.Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [System.Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('---EOS---') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
+        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; [Void]$Builder.AppendLine('Try {') ; While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) } ; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }') ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('---EOS---') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
 
         [String] $Command = "&{ $($ScriptBlock.ToString()) }"
 
