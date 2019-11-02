@@ -2,7 +2,7 @@
 
 .SYNOPSIS
 
-This script is just a POC that demonstrates that powershell can be executed remotely without WinRM & PSRemoting
+This script is just a POC that demonstrates that powershell can be executed remotely without PSRemoting
 
 
 .NOTES
@@ -271,40 +271,25 @@ Function Is-Online() {
 
 if ((New-Object Security.Principal.WindowsPrincipal ([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
-
     if (Is-Online -ComputerName $ComputerName) {
-
 
         if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
 
-
             [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
 
-
-            if ($null -ne $PipeClient) {  
+            if (($null -ne $PipeClient) -and ($PipeClient.IsConnected)) {  
            
-
-                if ($PipeClient.IsConnected) {
-
-
-                    $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
-
-                }
+                $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
 
                 [Void] $PipeClient.Dispose()
 
-
                 Return $Return
-
 
             } else {
 
-
                 Return $null
 
-
             }
-
 
         } else {
 
@@ -320,7 +305,6 @@ if ((New-Object Security.Principal.WindowsPrincipal ([Security.Principal.Windows
 
     }
     
-
 } else {
 
     Write-Host "The requested operation requires elevation" -ForegroundColor Yellow
