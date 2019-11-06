@@ -80,7 +80,26 @@ Add-Type -TypeDefinition @"
         public uint dwThreadId;
     }
 
-    public enum PROCESS_ACCESS_FLAGS : uint
+    public enum TOKEN_ACCESS : uint
+    {
+        TokenDuplicate = 0x00000002,
+        TokenImpersonate = 0x00000004,
+        TokenQuery = 0x00000008,
+        TokenQuerySource = 0x00000010,
+        TokenAdjustPrivileges = 0x00000020,
+        TokenAdjustGroups = 0x00000040,
+        TokenAdjustDefault = 0x00000080,
+        TokenAdjustSessionId = 0x00000100,
+        Delete = 0x00010000,
+        ReadControl = 0x00020000,
+        WriteDAC = 0x00040000,
+        WriteOwner = 0x00080000,
+        Synchronize = 0x00100000,
+        StandardRightsRequired = 0x000F0000,
+        TokenAllAccess = 0x001f01ff
+    }
+
+    public enum PROCESS_ACCESS : uint
     {
         Terminate = 0x00000001,
         CreateThread = 0x00000002,
@@ -97,13 +116,38 @@ Add-Type -TypeDefinition @"
         All = 0x001F0FFF
     }
 
-    public enum PROCESS_CREATION_FLAGS : int
+    public enum PROCESS_CREATION : uint
     {
+        DebugProcess = 0x00000001,
+        DebugOnlyThisProcess = 0x00000002,
+        CreateSuspended = 0x00000004,
+        DetachedProcess = 0x00000008,
         CreateNewConsole = 0x00000010,
+        NormalPriorityClass = 0x00000020,
+        IdlePriorityClass = 0x00000040,
+        HighPriorityClass = 0x00000080,
+        RealtimePriorityClass = 0x00000100,
+        CreateNewProcessGroup = 0x00000200,
         CreateUnicodeEnvironment = 0x00000400,
+        CreateSeparateWowVdm = 0x00000800,
+        CreateSharedWowVdm = 0x00001000,
+        CreateForceDos = 0x00002000,
+        BelowNormalPriorityClass = 0x00004000,
+        AboveNormalPriorityClass = 0x00008000,
+        InheritParentAffinity = 0x00010000,
+        InheritCallerPriority = 0x00020000,
+        CreateProtectedProcess = 0x00040000,
+        ExtendedStartupInfoPresent = 0x00080000,
+        ProcessModeBackgroundBegin = 0x00100000,
+        ProcessModeBackgroundEnd = 0x00200000,
         CreateBreakawayFromJob = 0x01000000,
-        CreateNoWindow = 0x08000000, 	
-        HighPriorityClass = 0x80
+        CreatePreserveCodeAuthzLevel = 0x02000000,
+        CreateDefaultErrorMode = 0x04000000,
+        CreateNoWindow = 0x08000000,
+        ProfileUser = 0x10000000,
+        ProfileKernel = 0x20000000,
+        ProfileServer = 0x40000000,
+        CreateIgnoreSystemDefault = 0x80000000
     }
 
     public enum TOKEN_TYPE : int
@@ -255,7 +299,7 @@ if ($ProcessAsUser) {
 
     
 
-    [IntPtr] $ProcessHandle = [ProcessLoader]::OpenProcess([PROCESS_ACCESS_FLAGS]::All, $false, $WinLogonId) 
+    [IntPtr] $ProcessHandle = [ProcessLoader]::OpenProcess([PROCESS_ACCESS]::All, $false, $WinLogonId) 
 
     if ($ProcessHandle -eq [IntPtr]::Zero) { 
 
@@ -281,9 +325,9 @@ if ($ProcessAsUser) {
 
     [IntPtr] $DuplicatedUserTokenHandle = [IntPtr]::Zero
 
-    [Int] $GenericAllAccess = 0x10000000
+    [Int] $GenericGranted = 0x10000000
 
-    [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, $GenericAllAccess, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle) | Out-Null
+    [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, $GenericGranted, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle) | Out-Null
 
     if ($DuplicatedUserTokenHandle -eq [IntPtr]::Zero) {    
 
@@ -295,7 +339,7 @@ if ($ProcessAsUser) {
     }
 
 
-    [Int] $CreationFlag = [PROCESS_CREATION_FLAGS]::CreateUnicodeEnvironment + [PROCESS_CREATION_FLAGS]::CreateNewConsole + [PROCESS_CREATION_FLAGS]::CreateBreakawayFromJob + [PROCESS_CREATION_FLAGS]::HighPriorityClass 
+    [Int] $CreationFlag = [PROCESS_CREATION]::CreateUnicodeEnvironment + [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::CreateBreakawayFromJob + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessLoader]::StartProcessAsUser($DuplicatedUserTokenHandle, $CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
@@ -307,7 +351,7 @@ if ($ProcessAsUser) {
 } else {
 
 
-    [Int] $CreationFlag = [PROCESS_CREATION_FLAGS]::CreateNewConsole + [PROCESS_CREATION_FLAGS]::HighPriorityClass 
+    [Int] $CreationFlag = [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessLoader]::StartProcess($CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
