@@ -2,7 +2,7 @@
 
 .SYNOPSIS
 
-this script creates, runs and deletes scheduled task on remote computer and gets exit code back
+This script creates, runs and deletes scheduled task on remote computer and gets exit code back
 
 
 .NOTES
@@ -196,7 +196,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
         $TaskFolder.DeleteTask($TaskName, 0)
 
-        Write-Host "Task $TaskName finished with return code $ExitCode on $ComputerName"
+        Write-Output -InputObject "Task $TaskName finished with return code $ExitCode on $ComputerName"
 
         #Return $ExitCode
 
@@ -204,7 +204,7 @@ if (Is-Online -ComputerName $ComputerName) {
     } Catch {
 
 
-        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         #Return $_.Exception.HResult
 
@@ -229,7 +229,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
 } else {
 
-    Write-Host "$ComputerName is not online" -ForegroundColor Yellow
+    Write-Output -InputObject "$ComputerName is not online"
 
 }
 
