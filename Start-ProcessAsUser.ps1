@@ -87,7 +87,7 @@ Add-Type -TypeDefinition @"
         Low = 0x0,
         TokenDuplicate = 0x0002,
         TokenImpersonation = 0x0004,
-	    TokenQuery = 0x0008,
+	TokenQuery = 0x0008,
         High = 0x10000000,
         AllAccess = 0x001F0FFF
     }
