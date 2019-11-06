@@ -192,9 +192,9 @@ Function Is-InWinPE() {
 
     Try { 
 
-        $TSEnvironment = New-Object -ComObject Microsoft.SMS.TSEnvironment -ErrorAction SilentlyContinue
+        [__ComObject] $TSEnvironment = New-Object -ComObject Microsoft.SMS.TSEnvironment -ErrorAction SilentlyContinue
 
-        Return [System.Convert]::ToBoolean($TSEnvironment.Value("_SMSTSinWinPE"))
+        Return [Convert]::ToBoolean($TSEnvironment.Value("_SMSTSinWinPE"))
 
     } Catch { 
         
