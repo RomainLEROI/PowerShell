@@ -39,8 +39,6 @@ Param(
 Add-Type -TypeDefinition @"
 
     using System;
-    using System.Security;
-    using System.Diagnostics;
     using System.Runtime.InteropServices;
 
     [StructLayout(LayoutKind.Sequential)]
