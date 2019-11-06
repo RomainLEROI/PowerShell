@@ -82,7 +82,6 @@ Add-Type -TypeDefinition @"
         public uint dwThreadId;
     }
 
-    [Flags]
     public enum DESIRED_ACCESS : int
     {
         Low = 0x0,
@@ -93,7 +92,6 @@ Add-Type -TypeDefinition @"
         AllAccess = 0x001F0FFF
     }
 
-    [Flags]
     public enum PROCESS_ACCESS_FLAGS : uint
     {
         All = 0x001F0FFF,
@@ -111,7 +109,6 @@ Add-Type -TypeDefinition @"
         Synchronize = 0x00100000
     }
 
-    [Flags]
     public enum PROCESS_CREATION_FLAGS : int
     {
         CreateNewConsole = 0x00000010,
@@ -126,7 +123,6 @@ Add-Type -TypeDefinition @"
         TokenPrimary = 1,
         TokenImpersonation = 2
     }
-
 
     public enum SECURITY_IMPERSONATION_LEVEL : int
     {
@@ -171,7 +167,6 @@ Add-Type -TypeDefinition @"
             return CreateProcessAsUser(DuplicateUserTokenHandle, null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
 
         }
-
 
         public static bool StartProcess(string CmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string WorkingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION ProcessInformations)
         {
@@ -249,8 +244,8 @@ $StartupInformations.cb = [Runtime.InteropServices.Marshal]::SizeOf($StartupInfo
 if ((Is-InWinPE) -or ($CurrentSID -ne "S-1-5-18")) {
 
     $ProcessAsUser = $false
+    
 }
-
 
 if ($CmdLine.Contains(".\")) { 
 
@@ -355,4 +350,3 @@ if ($ProcessCreated) {
 
 
 Return $ExitCode
-
