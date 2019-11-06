@@ -1,4 +1,3 @@
-
 <#
 
 .SYNOPSIS
@@ -233,4 +232,3 @@ if (Is-Online -ComputerName $ComputerName) {
     Write-Output -InputObject "$ComputerName is not online"
 
 }
-
