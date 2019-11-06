@@ -1,4 +1,3 @@
-
 <#
 
 .SYNOPSIS
@@ -329,4 +328,3 @@ if ((New-Object Security.Principal.WindowsPrincipal ([Security.Principal.Windows
     Write-Output -InputObject "The requested operation requires elevation"
 
 }
-
