@@ -104,7 +104,7 @@ Function Invoke-ScriptBlock() {
     } Catch {
 
 
-        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         Return $null
 
@@ -152,7 +152,7 @@ Function Create-PipeClient() {
     } Catch {
 
 
-        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+        Write-Output "$($_.Exception.GetType())`n$($_.Exception.Message)"
         
         Return $null
 
@@ -205,7 +205,7 @@ Function Create-PipeServer() {
 
         $ManagementClass.Options = $ObjectGetOptions
 
-        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut) ; $PipeServer.WaitForConnection() ; $PipeReader = New-Object System.IO.StreamReader($PipeServer) ; $PipeWriter = New-Object System.IO.StreamWriter($PipeServer) ; $PipeWriter.AutoFlush = $true ; $Builder = [Text.StringBuilder]::new() ; [Void]$Builder.AppendLine('Try {') ; While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) } ; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }') ; $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())) ; $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace() ; $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA ; $NewPowerShell.Runspace = $NewRunspace ; $NewPowerShell.Runspace.Open() ; $Invoke = $NewPowerShell.BeginInvoke() ; $Result = $NewPowerShell.EndInvoke($Invoke) ; $Ser = [Management.Automation.PSSerializer]::Serialize($result) ; $PipeWriter.WriteLine($Ser) ; $PipeWriter.WriteLine('---EOS---') ; $PipeWriter.dispose() ; $PipeReader.Dispose() ; $PipeServer.Close() ; $PipeServer.Dispose()}
+        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = New-Object System.IO.StreamReader($PipeServer); $PipeWriter = New-Object System.IO.StreamWriter($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) }; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $Result = $NewPowerShell.EndInvoke($Invoke); $Serialized = [Management.Automation.PSSerializer]::Serialize($result); $PipeWriter.WriteLine($Serialized); $PipeWriter.WriteLine('---EOS---'); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose()}
 
         [String] $Command = "&{ $($ScriptBlock.ToString()) }"
 
@@ -219,7 +219,7 @@ Function Create-PipeServer() {
     } Catch {
 
 
-        Write-Host "$($_.Exception.GetType())`n$($_.Exception.Message)" -ForegroundColor Red
+        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         Return $null
 
@@ -318,14 +318,14 @@ if ((New-Object Security.Principal.WindowsPrincipal ([Security.Principal.Windows
 
     }  else {
 
-        Write-Host "$ComputerName is not online" -ForegroundColor Yellow
+        Write-Output -InputObject "$ComputerName is not online"
 
     }
     
 
 } else {
 
-    Write-Host "The requested operation requires elevation" -ForegroundColor Yellow
+    Write-Output -InputObject "The requested operation requires elevation"
 
 }
 
