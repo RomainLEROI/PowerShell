@@ -164,23 +164,19 @@ Add-Type -TypeDefinition @"
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetExitCodeProcess(IntPtr HANDLE, ref uint LPDWORD);
 
-
-
         public static bool StartProcessAsUser(IntPtr DuplicateUserTokenHandle, string CmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string WorkingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION ProcessInformations)
         {
 
-            bool Started = CreateProcessAsUser(DuplicateUserTokenHandle, null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
+            return CreateProcessAsUser(DuplicateUserTokenHandle, null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
 
-            return Started;
         }
 
 
         public static bool StartProcess(string CmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string WorkingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION ProcessInformations)
         {
 
-            bool Started = CreateProcess(null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
+            return CreateProcess(null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
 
-            return Started;
         }
 
     }
