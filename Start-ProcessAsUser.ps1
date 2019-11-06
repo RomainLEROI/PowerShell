@@ -80,19 +80,8 @@ Add-Type -TypeDefinition @"
         public uint dwThreadId;
     }
 
-    public enum DESIRED_ACCESS : int
-    {
-        Low = 0x0,
-        TokenDuplicate = 0x0002,
-        TokenImpersonation = 0x0004,
-	TokenQuery = 0x0008,
-        High = 0x10000000,
-        AllAccess = 0x001F0FFF
-    }
-
     public enum PROCESS_ACCESS_FLAGS : uint
     {
-        All = 0x001F0FFF,
         Terminate = 0x00000001,
         CreateThread = 0x00000002,
         VirtualMemoryOperation = 0x00000008,
@@ -104,7 +93,8 @@ Add-Type -TypeDefinition @"
         SetInformation = 0x00000200,
         QueryInformation = 0x00000400,
         QueryLimitedInformation = 0x00001000,
-        Synchronize = 0x00100000
+        Synchronize = 0x00100000,
+        All = 0x001F0FFF
     }
 
     public enum PROCESS_CREATION_FLAGS : int
@@ -235,7 +225,7 @@ $StartupInformations.cb = [Runtime.InteropServices.Marshal]::SizeOf($StartupInfo
 [PROCESS_INFORMATION] $ProcessInformations = [PROCESS_INFORMATION]::New()
 
 
-[String] $CurrentSID = (New-Object System.Security.Principal.NTAccount([Security.Principal.WindowsIdentity]::GetCurrent().Name)).Translate([Security.Principal.SecurityIdentifier]).Value
+[String] $CurrentSID = ([Security.Principal.NTAccount]::New([Security.Principal.WindowsIdentity]::GetCurrent().Name)).Translate([Security.Principal.SecurityIdentifier]).Value
 
 [Bool] $ProcessAsUser = $true
 
@@ -261,8 +251,9 @@ if ($WorkingDir.StartsWith(".\")) {
 if ($ProcessAsUser) {
 
 
-    [Int] $WinLogonId = (Get-Process -Name winlogon -ErrorAction SilentlyContinue).Id
+    [Int] $WinLogonId = (Get-Process -Name winlogon).Id
 
+    
 
     [IntPtr] $ProcessHandle = [ProcessLoader]::OpenProcess([PROCESS_ACCESS_FLAGS]::All, $false, $WinLogonId) 
 
@@ -275,7 +266,9 @@ if ($ProcessAsUser) {
 
     [IntPtr] $ProcessTokenHandle = [IntPtr]::Zero
 
-    [ProcessLoader]::OpenProcessToken($ProcessHandle, [DESIRED_ACCESS]::TokenDuplicate + [DESIRED_ACCESS]::TokenQuery + [DESIRED_ACCESS]::TokenImpersonate, [Ref] $ProcessTokenHandle) | Out-Null
+    [int] $TokenAccess = [Security.Principal.TokenAccessLevels]::Duplicate + [Security.Principal.TokenAccessLevels]::Query + [Security.Principal.TokenAccessLevels]::Impersonate
+
+    [ProcessLoader]::OpenProcessToken($ProcessHandle, $TokenAccess, [Ref] $ProcessTokenHandle) | Out-Null
 
     if ($ProcessTokenHandle -eq [IntPtr]::Zero) {
 
@@ -288,7 +281,9 @@ if ($ProcessAsUser) {
 
     [IntPtr] $DuplicatedUserTokenHandle = [IntPtr]::Zero
 
-    [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, [DESIRED_ACCESS]::High, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle) | Out-Null
+    [Int] $GenericAllAccess = 0x10000000
+
+    [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, $GenericAllAccess, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle) | Out-Null
 
     if ($DuplicatedUserTokenHandle -eq [IntPtr]::Zero) {    
 
