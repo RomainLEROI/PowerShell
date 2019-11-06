@@ -154,7 +154,7 @@ Add-Type -TypeDefinition @"
 
         [DllImport("advapi32.dll")]
         public static extern bool CreateProcessAsUser(IntPtr hToken, string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, 
-                                                      uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);  
+                                                      uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation); Â 
 
         [DllImport("kernel32.dll")]
         public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine,  ref SECURITY_ATTRIBUTES lpProcessAttributes,  ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, 
@@ -360,33 +360,3 @@ if ($ProcessCreated) {
 
 
 Return $ExitCode
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
