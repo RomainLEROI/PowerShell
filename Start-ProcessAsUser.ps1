@@ -7,7 +7,6 @@ This script creates an interactive process from the system account
 
 .NOTES
 
-
 If the script is executed from WinPE or from another account than the system account a standard process is created
 
 
