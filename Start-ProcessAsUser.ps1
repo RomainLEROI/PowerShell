@@ -220,7 +220,7 @@ Function Is-InWinPE() {
 
 
 
-[HashTable] $KnownError = @{
+[HashTable] $KnownReturn = @{
 
     Success = 0
     OpenProcessFailure = 0x3E8
@@ -280,7 +280,7 @@ if ($ProcessAsUser) {
 
     if ($ProcessHandle -eq [IntPtr]::Zero) { 
 
-        Return $KnownError.OpenProcessFailure
+        Return $KnownReturn.OpenProcessFailure
 
     } 
 
@@ -293,7 +293,7 @@ if ($ProcessAsUser) {
 
         [ProcessLoader]::CloseHandle($ProcessHandle) | Out-Null
 
-        Return $KnownError.OpenUserTokenFailure
+        Return $KnownReturn.OpenUserTokenFailure
 
     }
 
@@ -307,7 +307,7 @@ if ($ProcessAsUser) {
         [ProcessLoader]::CloseHandle($ProcessHandle) | Out-Null
         [ProcessLoader]::CloseHandle($ProcessTokenHandle) | Out-Null
 
-        Return $KnownError.DuplicateTokenFailure
+        Return $KnownReturn.DuplicateTokenFailure
 
     }
 
@@ -335,7 +335,7 @@ if ($ProcessAsUser) {
 if ($ProcessCreated) {
 
 
-    [Int] $ExitCode = 0
+    [Int] $ExitCode = $KnownReturn.Success
 
 
     if ($Wait) { 
@@ -353,10 +353,11 @@ if ($ProcessCreated) {
 } else {
 
            
-    $ExitCode = $KnownError.ProcessCreationFailure
+    $ExitCode = $KnownReturn.ProcessCreationFailure
  
                     
 }
 
 
 Return $ExitCode
+
