@@ -193,17 +193,17 @@ Add-Type -TypeDefinition @"
         [DllImport("kernel32.dll")]
         public static extern IntPtr GetExitCodeProcess(IntPtr HANDLE, ref uint LPDWORD);
 
-        public static bool StartProcessAsUser(IntPtr DuplicateUserTokenHandle, string CmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string WorkingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION ProcessInformations)
+        public static bool StartProcessAsUser(IntPtr duplicateUserTokenHandle, string cmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string workingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION processInformations)
         {
 
-            return CreateProcessAsUser(DuplicateUserTokenHandle, null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
+            return CreateProcessAsUser(duplicateUserTokenHandle, null, cmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, workingDir, ref lpStartupInfo, out processInformations);
 
         }
 
-        public static bool StartProcess(string CmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string WorkingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION ProcessInformations)
+        public static bool StartProcess(string cmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string workingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION processInformations)
         {
 
-            return CreateProcess(null, CmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, WorkingDir, ref lpStartupInfo, out ProcessInformations);
+            return CreateProcess(null, cmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, workingDir, ref lpStartupInfo, out processInformations);
 
         }
 
