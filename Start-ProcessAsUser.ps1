@@ -286,7 +286,6 @@ if ($ProcessAsUser) {
 
 
     [Int] $WinLogonId = (Get-Process -Name winlogon).Id
-
     
     [IntPtr] $ProcessHandle = [ProcessLoader]::OpenProcess([PROCESS_ACCESS]::All, $false, $WinLogonId) 
 
