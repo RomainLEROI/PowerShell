@@ -13,9 +13,7 @@ If the script is executed from WinPE or from another account than the system acc
 .EXAMPLE
 
 Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine .\Test.exe
-
 Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine "wscript.exe .\Test.vbs"
-
 Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine "wscript.exe ".\Foo Bar\Test.vbs""
 
 #>
@@ -166,27 +164,24 @@ Add-Type -TypeDefinition @"
   
     public static class ProcessLoader
     {
-
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
 
         [DllImport("advapi32")]
-        public static extern bool OpenProcessToken(IntPtr ProcessHandle, int DesiredAccess, ref IntPtr TokenHandle);
+        public static extern bool OpenProcessToken(IntPtr hProcessHandle, uint dwDesiredAccess, ref IntPtr hTokenHandle);
 
         [DllImport("kernel32.dll")]
         public static extern bool CloseHandle(IntPtr hSnapshot);
    
         [DllImport("advapi32.dll")]
-        public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, ref SECURITY_ATTRIBUTES lpTokenAttributes, SECURITY_IMPERSONATION_LEVEL ImpersonationLevel, TOKEN_TYPE TokenType, out IntPtr phNewToken);
-
+        public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, ref SECURITY_ATTRIBUTES lpTokenAttributes, SECURITY_IMPERSONATION_LEVEL lpImpersonationLevel, TOKEN_TYPE tokenType, out IntPtr phNewToken);
+        
         [DllImport("advapi32.dll")]
-        public static extern bool CreateProcessAsUser(IntPtr hToken, string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, 
-                                                      uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);  
-
+        public static extern bool CreateProcessAsUser(IntPtr hToken, string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);  
+        
         [DllImport("kernel32.dll")]
-        public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine,  ref SECURITY_ATTRIBUTES lpProcessAttributes,  ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, 
-                                                uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
-
+        public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine,  ref SECURITY_ATTRIBUTES lpProcessAttributes,  ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
+        
         [DllImport("kernel32.dll")]
         public static extern IntPtr WaitForSingleObject(IntPtr hHandle, long dwMilliseconds);
 
@@ -195,27 +190,22 @@ Add-Type -TypeDefinition @"
 
         public static bool StartProcessAsUser(IntPtr duplicateUserTokenHandle, string cmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string workingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION processInformations)
         {
-
             return CreateProcessAsUser(duplicateUserTokenHandle, null, cmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, workingDir, ref lpStartupInfo, out processInformations);
-
         }
-
         public static bool StartProcess(string cmdLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, uint dwCreationFlags, string workingDir, ref STARTUPINFO lpStartupInfo, out PROCESS_INFORMATION processInformations)
         {
-
             return CreateProcess(null, cmdLine, ref lpProcessAttributes, ref lpThreadAttributes, false, dwCreationFlags, IntPtr.Zero, workingDir, ref lpStartupInfo, out processInformations);
-
         }
-
     }
   
 "@
 
 
 
-
 Function Is-InWinPE() {
 
+
+    Param()
 
     Try { 
 
@@ -298,7 +288,6 @@ if ($ProcessAsUser) {
     [Int] $WinLogonId = (Get-Process -Name winlogon).Id
 
     
-
     [IntPtr] $ProcessHandle = [ProcessLoader]::OpenProcess([PROCESS_ACCESS]::All, $false, $WinLogonId) 
 
     if ($ProcessHandle -eq [IntPtr]::Zero) { 
@@ -310,30 +299,29 @@ if ($ProcessAsUser) {
 
     [IntPtr] $ProcessTokenHandle = [IntPtr]::Zero
 
-    [int] $TokenAccess = [Security.Principal.TokenAccessLevels]::Duplicate + [Security.Principal.TokenAccessLevels]::Query + [Security.Principal.TokenAccessLevels]::Impersonate
+    [Int] $TokenAccess = [TOKEN_ACCESS]::TokenDuplicate + [TOKEN_ACCESS]::TokenQuery + [TOKEN_ACCESS]::TokenImpersonate
 
-    [ProcessLoader]::OpenProcessToken($ProcessHandle, $TokenAccess, [Ref] $ProcessTokenHandle) | Out-Null
+    [Void] [ProcessLoader]::OpenProcessToken($ProcessHandle, $TokenAccess, [Ref] $ProcessTokenHandle)
+
+    [Void] [ProcessLoader]::CloseHandle($ProcessHandle)
 
     if ($ProcessTokenHandle -eq [IntPtr]::Zero) {
-
-        [ProcessLoader]::CloseHandle($ProcessHandle) | Out-Null
-
+       
         Return $KnownReturn.OpenUserTokenFailure
 
     }
 
-
+    
     [IntPtr] $DuplicatedUserTokenHandle = [IntPtr]::Zero
 
-    [Int] $GenericGranted = 0x10000000
+    [Int] $MaximumAllowed = 0x10000000
 
-    [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, $GenericGranted, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle) | Out-Null
+    [Void] [ProcessLoader]::DuplicateTokenEx($ProcessTokenHandle, $MaximumAllowed, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle)
+
+    [Void] [ProcessLoader]::CloseHandle($ProcessTokenHandle)
 
     if ($DuplicatedUserTokenHandle -eq [IntPtr]::Zero) {    
-
-        [ProcessLoader]::CloseHandle($ProcessHandle) | Out-Null
-        [ProcessLoader]::CloseHandle($ProcessTokenHandle) | Out-Null
-
+       
         Return $KnownReturn.DuplicateTokenFailure
 
     }
@@ -343,9 +331,7 @@ if ($ProcessAsUser) {
 
     $ProcessCreated = [ProcessLoader]::StartProcessAsUser($DuplicatedUserTokenHandle, $CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
-    [ProcessLoader]::CloseHandle($ProcessHandle) | Out-Null
-    [ProcessLoader]::CloseHandle($ProcessTokenHandle) | Out-Null
-    [ProcessLoader]::CloseHandle($DuplicatedUserTokenHandle) | Out-Null
+    [Void] [ProcessLoader]::CloseHandle($DuplicatedUserTokenHandle)
 
 
 } else {
@@ -369,10 +355,9 @@ if ($ProcessCreated) {
 
         [Int] $WaitInfinite = 0xFFFFFFFF
 
-        [ProcessLoader]::WaitForSingleObject($ProcessInformations.hProcess, $WaitInfinite) | Out-Null
+        [Void] [ProcessLoader]::WaitForSingleObject($ProcessInformations.hProcess, $WaitInfinite)
 
-        [ProcessLoader]::GetExitCodeProcess($ProcessInformations.hProcess, [Ref]$ExitCode) | Out-Null
-
+        [Void] [ProcessLoader]::GetExitCodeProcess($ProcessInformations.hProcess, [Ref]$ExitCode)
 
     } 
 
