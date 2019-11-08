@@ -81,34 +81,34 @@ if (Is-Online -ComputerName $ComputerName) {
 
         [Hashtable] $Id = @{
         
-            SYSTEM = "S-1-5-18"
-            ADMINISTRATORS = "S-1-5-32-544"
-            USERS = "S-1-5-32-545"
+            System = "S-1-5-18"
+            Administrators = "S-1-5-32-544"
+            Users = "S-1-5-32-545"
 
         }
 
 
         [Hashtable] $LogonType = @{
 
-            TASK_LOGON_INTERACTIVE_TOKEN = 3
-            TASK_LOGON_GROUP = 4
+            TaskLogonInteractiveToken = 3
+            TaskLogonGroup = 4
 
         }
 
 
         [Hashtable] $RunLevel = @{
 
-            TASK_RUNLEVEL_LUA = 0
-            TASK_RUNLEVEL_HIGHEST = 1
+            TaskRunLevelLUA = 0
+            TaskRunLevelHighest = 1
 
         }
 
 
         [Hashtable] $TaskCreation = @{
         
-            TASK_CREATE = 2
-            TASK_UPDATE = 4
-            TASK_CREATE_OR_UPDATE = 6
+            TaskCreate = 2
+            TaskUpdate = 4
+            TaskCreateOrUpdate = 6
 
         }
 
@@ -135,23 +135,23 @@ if (Is-Online -ComputerName $ComputerName) {
 
         $TaskDefinition.Principal.GroupId = $Sid
 
-        if ($Sid -eq $Id.SYSTEM) {
+        if ($Sid -eq $Id.System) {
 
-            $TaskDefinition.Principal.LogonType = $LogonType.TASK_LOGON_GROUP
+            $TaskDefinition.Principal.LogonType = $LogonType.TaskLogonGroup
 
         } else {
 
-            $TaskDefinition.Principal.LogonType = $LogonType.TASK_LOGON_INTERACTIVE_TOKEN
+            $TaskDefinition.Principal.LogonType = $LogonType.TaskLogonInteractiveToken
 
         }
 
-        if ($Sid -eq $Id.USERS) {
+        if ($Sid -eq $Id.Users) {
 
-            $TaskDefinition.Principal.RunLevel = $RunLevel.TASK_RUNLEVEL_LUA
+            $TaskDefinition.Principal.RunLevel = $RunLevel.TaskRunLevelLUA
 
         } else {
 
-            $TaskDefinition.Principal.RunLevel = $RunLevel.TASK_RUNLEVEL_HIGHEST
+            $TaskDefinition.Principal.RunLevel = $RunLevel.TaskRunLevelHighest
 
         }
 
@@ -171,7 +171,7 @@ if (Is-Online -ComputerName $ComputerName) {
         $Action.Arguments = $Arguments
 
 
-        [Void] $TaskFolder.RegisterTaskDefinition($TaskName, $TaskDefinition, $TaskCreation.TASK_CREATE_OR_UPDATE, $null, $null, $TaskDefinition.Principal.LogonType)
+        [Void] $TaskFolder.RegisterTaskDefinition($TaskName, $TaskDefinition, $TaskCreation.TaskCreateOrUpdate, $null, $null, $TaskDefinition.Principal.LogonType)
 
 
         [__ComObject] $Task = $TaskFolder.GetTask($TaskName)
@@ -198,15 +198,11 @@ if (Is-Online -ComputerName $ComputerName) {
 
         Write-Output -InputObject "Task $TaskName finished with return code $ExitCode on $ComputerName"
 
-        #Exit $ExitCode
-
 
     } Catch {
 
 
         Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
-
-        #Exit $_.Exception.HResult
 
 
     } Finally {
@@ -229,8 +225,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
 } else {
 
-    Write-Output -InputObject "$ComputerName is not online"
-    
-    #Exit [Int]::MaxValue
 
+    Write-Output -InputObject "$ComputerName is not online"
+ 
 }
