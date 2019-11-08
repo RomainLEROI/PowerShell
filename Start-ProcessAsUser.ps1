@@ -291,7 +291,7 @@ if ($ProcessAsUser) {
 
     if ($ProcessHandle -eq [IntPtr]::Zero) { 
 
-        Return $KnownReturn.OpenProcessFailure
+        Exit $KnownReturn.OpenProcessFailure
 
     } 
 
@@ -306,7 +306,7 @@ if ($ProcessAsUser) {
 
     if ($ProcessTokenHandle -eq [IntPtr]::Zero) {
        
-        Return $KnownReturn.OpenUserTokenFailure
+        Exit $KnownReturn.OpenUserTokenFailure
 
     }
 
@@ -321,7 +321,7 @@ if ($ProcessAsUser) {
 
     if ($DuplicatedUserTokenHandle -eq [IntPtr]::Zero) {    
        
-        Return $KnownReturn.DuplicateTokenFailure
+        Exit $KnownReturn.DuplicateTokenFailure
 
     }
 
@@ -370,4 +370,4 @@ if ($ProcessCreated) {
 }
 
 
-Return $ExitCode
+Exit $ExitCode
