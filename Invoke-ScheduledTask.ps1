@@ -198,7 +198,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
         Write-Output -InputObject "Task $TaskName finished with return code $ExitCode on $ComputerName"
 
-        #Return $ExitCode
+        #Exit $ExitCode
 
 
     } Catch {
@@ -206,7 +206,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
         Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
-        #Return $_.Exception.HResult
+        #Exit $_.Exception.HResult
 
 
     } Finally {
@@ -230,5 +230,7 @@ if (Is-Online -ComputerName $ComputerName) {
 } else {
 
     Write-Output -InputObject "$ComputerName is not online"
+    
+    #Exit [Int]::MaxValue
 
 }
