@@ -81,24 +81,15 @@ Function Invoke-ScriptBlock() {
     Try {
 
 
-        [IO.StreamReader] $PipeReader = New-Object System.IO.StreamReader($PipeClient)
+        [IO.StreamReader] $PipeReader = [IO.StreamReader]::new($PipeClient)
 
-        [IO.StreamWriter] $PipeWriter = New-Object System.IO.StreamWriter($PipeClient)
+        [IO.StreamWriter] $PipeWriter = [IO.StreamWriter]::new($PipeClient)
 
         $PipeWriter.AutoFlush = $true
 
-        $PipeWriter.WriteLine($ScriptBlock.ToString())
-        $PipeWriter.WriteLine("---EOS---")
-
-        [Text.StringBuilder] $Builder = [Text.StringBuilder]::new()
-
-        While ( ($Incoming = $PipeReader.ReadLine()) -ne "---EOS---") { 
-
-            [Void]$Builder.AppendLine($Incoming) 
-    
-        }
-
-        Return $Builder.ToString()
+        $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())))
+           
+        Return [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))
 
 
     } Catch {
@@ -142,7 +133,7 @@ Function Create-PipeClient() {
     Try {
 
 
-        [IO.Pipes.NamedPipeClientStream] $PipeClient = new-object System.IO.Pipes.NamedPipeClientStream($ComputerName, 'ScriptBlock', [IO.Pipes.PipeDirection]::InOut, [IO.Pipes.PipeOptions]::None, [Security.Principal.TokenImpersonationLevel]::Anonymous)
+        [IO.Pipes.NamedPipeClientStream] $PipeClient = [IO.Pipes.NamedPipeClientStream]::new($ComputerName, 'ScriptBlock', [IO.Pipes.PipeDirection]::InOut)
 
         $PipeClient.Connect()
 
@@ -177,7 +168,7 @@ Function Create-PipeServer() {
     Try {
 
 
-        [Management.ManagementOptions] $ConnectionOptions = New-Object System.Management.ConnectionOptions
+        [Management.ManagementOptions] $ConnectionOptions = [Management.ConnectionOptions]::new()
         
         $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
 
@@ -185,19 +176,19 @@ Function Create-PipeServer() {
 
         $ConnectionOptions.EnablePrivileges = $true
 
-        [Management.ManagementScope] $ManagementScope = New-Object System.Management.ManagementScope
+        [Management.ManagementScope] $ManagementScope = [Management.ManagementScope]::new()
 
         $ManagementScope.Path = "\\$ComputerName\root\cimV2"
 
         $ManagementScope.Options = $ConnectionOptions
 
-        [Management.ObjectGetOptions] $ObjectGetOptions = New-Object System.Management.ObjectGetOptions
+        [Management.ObjectGetOptions] $ObjectGetOptions = [Management.ObjectGetOptions]::new()
 
         $ObjectGetOptions.Timeout = [TimeSpan]::MaxValue
 
         $ObjectGetOptions.UseAmendedQualifiers = $true
 
-        [Management.ManagementClass] $ManagementClass = New-Object System.Management.ManagementClass
+        [Management.ManagementClass] $ManagementClass = [Management.ManagementClass]::new()
 
         $ManagementClass.Scope = $ManagementScope
 
@@ -205,7 +196,7 @@ Function Create-PipeServer() {
 
         $ManagementClass.Options = $ObjectGetOptions
 
-        [ScriptBlock] $ScriptBlock = {$PipeServer = New-Object System.IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = New-Object System.IO.StreamReader($PipeServer); $PipeWriter = New-Object System.IO.StreamWriter($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); While ( ($Incoming = $PipeReader.ReadLine()) -ne '---EOS---') {  [Void]$Builder.AppendLine($Incoming) }; [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $Result = $NewPowerShell.EndInvoke($Invoke); $Serialized = [Management.Automation.PSSerializer]::Serialize($result); $PipeWriter.WriteLine($Serialized); $PipeWriter.WriteLine('---EOS---'); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose()}
+        [ScriptBlock] $ScriptBlock = {$PipeServer = [IO.Pipes.NamedPipeServerStream]::new('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer);$PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose()}
 
         [String] $Command = "&{ $($ScriptBlock.ToString()) }"
 
