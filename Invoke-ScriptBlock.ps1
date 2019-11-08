@@ -17,20 +17,18 @@ Windows PowerShell
 Copyright (C) 2016 Microsoft Corporation. All rights reserved.
 
 PS C:\Users\POKEDEX> .\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock {
->> Get-Service | Where-Object { $_.Name -eq "WinRM" } | Format-Table
->> Get-Process | Where-Object { $_.ProcessName -eq "Powershell" } | Format-Table
+>> Get-WindowsDriver -Online | Where-Object { $_.Driver -eq "oem91.inf" }
 >> }
 
-Status   Name               DisplayName
-------   ----               -----------
-Stopped  WinRM              Gestion à distance de Windows (Gest...
 
-
-
-Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
--------  ------    -----      -----     ------     --  -- -----------
-    530      36    74988      69712       0,50  16748   0 powershell
-    571      38    61488      74200       1,05  22132   2 powershell
+Driver           : oem91.inf
+OriginalFileName : C:\Windows\System32\DriverStore\FileRepository\prnms009.inf_amd64_5887f9f923285dd6\prnms009.inf
+Inbox            : False
+ClassName        : Printer
+BootCritical     : False
+ProviderName     : Microsoft
+Date             : 21/06/2006 00:00:00
+Version          : 10.0.17134.1
 
 
 PS C:\Users\POKEDEX>.\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock { Get-Service | Where-Object { $_.Name -eq "WinRM" } } | Format-List
