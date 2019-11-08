@@ -317,4 +317,3 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
     Write-Output -InputObject "The requested operation requires elevation"
 
 }
-
