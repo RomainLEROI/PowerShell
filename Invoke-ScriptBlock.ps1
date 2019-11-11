@@ -64,7 +64,7 @@ Param(
 
 
 
-Function Invoke-ScriptBlock() {
+Function Invoke-ScriptBlock {
 
     Param(
 
@@ -118,7 +118,7 @@ Function Invoke-ScriptBlock() {
 
 
 
-Function Create-PipeClient() {
+Function Create-PipeClient {
 
     Param(
 
@@ -153,7 +153,7 @@ Function Create-PipeClient() {
 
 
 
-Function Create-PipeServer() {
+Function Create-PipeServer {
 
     Param(
 
@@ -165,7 +165,7 @@ Function Create-PipeServer() {
 
     Try {
 
-
+        <#
         [Management.ManagementOptions] $ConnectionOptions = [Management.ConnectionOptions]::new()
         
         $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
@@ -194,13 +194,17 @@ Function Create-PipeServer() {
 
         $ManagementClass.Options = $ObjectGetOptions
 
-        [ScriptBlock] $ScriptBlock = {$PipeServer = [IO.Pipes.NamedPipeServerStream]::new('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer);$PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose(); $NewPowerShell.Runspace.Close(); $NewPowerShell.Runspace.Dispose(); $NewRunspace.Close(); $NewRunspace.Dispose(); $NewPowerShell.Dispose()}
+        #>
+
+        [ScriptBlock] $ScriptBlock = {$PipeServer = [IO.Pipes.NamedPipeServerStream]::new('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose(); $NewPowerShell.Runspace.Close(); $NewPowerShell.Runspace.Dispose(); $NewRunspace.Close(); $NewRunspace.Dispose(); $NewPowerShell.Dispose()}
 
         [String] $Command = "&{ $($ScriptBlock.ToString()) }"
 
         [String] $CmdLine = "PowerShell.exe -command $Command"
 
-        [Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
+        #[Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
+
+        [Management.ManagementBaseObject] $Process = Invoke-WmiMethod -ComputerName $ComputerName -Class Win32_Process -Name Create -ArgumentList $CmdLine
         
         Return $Process
 
@@ -233,7 +237,7 @@ Function Create-PipeServer() {
 
 
 
-Function Is-Online() {
+Function Is-Online {
 
     Param(
 
