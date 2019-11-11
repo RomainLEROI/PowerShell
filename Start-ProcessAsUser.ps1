@@ -202,7 +202,7 @@ Add-Type -TypeDefinition @"
 
 
 
-Function Is-InWinPE() {
+Function Is-InWinPE {
 
 
     Param()
