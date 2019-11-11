@@ -47,7 +47,7 @@ Param (
 
 
 
-Function Is-Online() {
+Function Is-Online {
 
 
     Param(
