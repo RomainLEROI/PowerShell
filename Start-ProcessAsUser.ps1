@@ -1,23 +1,3 @@
-<#
-
-.SYNOPSIS
-
-This script creates an interactive process from the system account
-
-
-.NOTES
-
-If the script is executed from WinPE or from another account than the system account a standard process is created
-
-
-.EXAMPLE
-
-Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine .\Test.exe
-Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine "wscript.exe .\Test.vbs"
-Powershell.exe -ExecutionPolicy Bypass -File "%Scripts%\Start-ProcessAsUser.ps1" -CmdLine "wscript.exe ".\Foo Bar\Test.vbs"" -Wait
-
-#>
-
 
 Param(
 
