@@ -20,9 +20,7 @@ Param (
 )
 
 
-
 Function Is-Online {
-
 
     Param(
 
@@ -46,9 +44,7 @@ Function Is-Online {
 }
 
 
-
 if (Is-Online -ComputerName $ComputerName) {
-
 
     Try {
 
@@ -61,7 +57,6 @@ if (Is-Online -ComputerName $ComputerName) {
 
         }
 
-
         [Hashtable] $LogonType = @{
 
             TaskLogonInteractiveToken = 3
@@ -69,14 +64,12 @@ if (Is-Online -ComputerName $ComputerName) {
 
         }
 
-
         [Hashtable] $RunLevel = @{
 
             TaskRunLevelLUA = 0
             TaskRunLevelHighest = 1
 
         }
-
 
         [Hashtable] $TaskCreation = @{
         
@@ -86,7 +79,6 @@ if (Is-Online -ComputerName $ComputerName) {
 
         }
 
-
         [Hashtable] $TaskState = @{
 
             Ready = 3
@@ -94,14 +86,11 @@ if (Is-Online -ComputerName $ComputerName) {
 
         }
 
-
         [__ComObject] $Service = New-Object -ComObject ("Schedule.Service")
 
         [Void] $Service.Connect($ComputerName)
 
-
         [__ComObject] $TaskFolder = $Service.GetFolder("\")
-
 
         [__ComObject] $TaskDefinition = $Service.NewTask(0) 
 
@@ -137,16 +126,13 @@ if (Is-Online -ComputerName $ComputerName) {
 
         $TaskDefinition.Settings.DisallowStartIfOnBatteries = $false
 
-
         [__ComObject] $Action = $TaskDefinition.Actions.Create(0)
 
         $Action.Path = $Path
 
         $Action.Arguments = $Arguments
 
-
         [Void] $TaskFolder.RegisterTaskDefinition($TaskName, $TaskDefinition, $TaskCreation.TaskCreateOrUpdate, $null, $null, $TaskDefinition.Principal.LogonType)
-
 
         [__ComObject] $Task = $TaskFolder.GetTask($TaskName)
 
@@ -196,9 +182,7 @@ if (Is-Online -ComputerName $ComputerName) {
 
     }
 
-
 } else {
-
 
     Write-Output -InputObject "$ComputerName is not online"
  
