@@ -1,7 +1,6 @@
 
 Param ( 
 
-
     [parameter(Mandatory = $true)]
     [String] $Namespace,
 
@@ -28,20 +27,15 @@ Param (
 )
 
 
-
 Function Is-Online {
 
-
     Param (
-
 
         [Parameter(Mandatory = $true)]
 
         [String] $ComputerName
 
-   
     )
-
 
     Try {
 
@@ -64,12 +58,9 @@ Function Is-Online {
 }
 
 
-
 Function Is-LocalHost {
 
-
     Param (
-
 
         [Parameter(Mandatory = $true)]
 
@@ -77,7 +68,6 @@ Function Is-LocalHost {
 
     
     )
-
 
     Switch ($true) {
 
@@ -101,16 +91,13 @@ Function Is-LocalHost {
 
     }
 
-
 }
 
 
 
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
-
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
 
         if (($Operation -eq "Add") -and ($null -eq $Permissions)) {
 
@@ -121,7 +108,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             Throw "Permissions cannot be specified for a delete operation"
 
         }
-
 
         [Hashtable] $PermissionTable = @{
         
@@ -136,7 +122,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         
         }
 
-
         [ComponentModel.Component] $Output = Invoke-WmiMethod -Namespace $Namespace -Path "__systemsecurity=@" -ComputerName $ComputerName -Name GetSecurityDescriptor
 
         if ($Output.ReturnValue -ne 0) {
@@ -144,7 +129,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             Throw "GetSecurityDescriptor failed: $($Output.ReturnValue)"
 
         }
-
 
         [ComponentModel.Component] $Acl = $Output.Descriptor
 
@@ -184,7 +168,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
  
-
         [Management.ManagementBaseObject] $Win32Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$AccountName'" -ComputerName $ComputerName
 
         if ($null -eq $Win32Account) {
@@ -192,9 +175,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             Throw "Account $Account was not found"
 
         }
-
-
-
 
         switch ($Operation) {
 
@@ -207,7 +187,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                     $AccessMask += $PermissionTable[$Permission]
 
                 }
-
 
                 [Int] $OBJECT_INHERIT_ACE_FLAG = 0x1
                 [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
@@ -225,7 +204,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
-  
                 [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
                 [Int] $ACCESS_DENIED_ACE_TYPE = 0x1                     
 
@@ -245,13 +223,8 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
-            }
-
-       
-
-            "Delete" {
+            } "Delete" {
      
-
                 [Management.ManagementBaseObject[]] $NewDACL = @()
 
                 foreach ($Ace in $Acl.DACL) {
@@ -264,38 +237,28 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
- 
-
                 $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
 
             }
 
-
         }
-
 
         [ComponentModel.Component] $Output = Invoke-WmiMethod -Name "SetSecurityDescriptor" -ArgumentList $Acl.psobject.immediateBaseObject -Namespace $Namespace -Path "__systemsecurity=@" -ComputerName $ComputerName
         
         if ($Output.ReturnValue -ne 0) {
 
-            throw "SetSecurityDescriptor failed: $($output.ReturnValue)"
+            Throw "SetSecurityDescriptor failed: $($output.ReturnValue)"
 
         }
 
-
     }  else {
-
 
         Write-Output -InputObject "$ComputerName is not online"
 
-
     }
-
-    
+   
 } else {
 
-
     Write-Output -InputObject "The requested operation requires elevation"
-
 
 }
