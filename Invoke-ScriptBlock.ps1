@@ -1,56 +1,3 @@
-<#
-
-.SYNOPSIS
-
-This script is just a POC that demonstrates that powershell can be executed remotely without PSRemoting
-
-
-.NOTES
-
-Script must be executed with an account that has the adminstrator privileges on both local and remote computers
-The local machine process must be elevated
-
-
-.EXAMPLE
-
-Windows PowerShell
-Copyright (C) 2016 Microsoft Corporation. All rights reserved.
-
-PS C:\Users\POKEDEX> .\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock {
->> Get-WindowsDriver -Online | Where-Object { $_.Driver -eq "oem91.inf" }
->> }
-
-
-Driver           : oem91.inf
-OriginalFileName : C:\Windows\System32\DriverStore\FileRepository\prnms009.inf_amd64_5887f9f923285dd6\prnms009.inf
-Inbox            : False
-ClassName        : Printer
-BootCritical     : False
-ProviderName     : Microsoft
-Date             : 21/06/2006 00:00:00
-Version          : 10.0.17134.1
-
-
-PS C:\Users\POKEDEX>.\Scripts\Invoke-ScriptBlock.ps1 -ComputerName SALAMESH -ScriptBlock { Get-Service | Where-Object { $_.Name -eq "WinRM" } } | Format-List
-
-
-Name                : WinRM
-DisplayName         : Gestion à distance de Windows (Gestion WSM)
-Status              : Stopped
-DependentServices   : {}
-ServicesDependedOn  : {RPCSS, HTTP}
-CanPauseAndContinue : False
-CanShutdown         : False
-CanStop             : False
-ServiceType         : Win32ShareProcess
-
-
-
-PS C:\Users\POKEDEX>
-
-#>
-
-
 
 Param(
 
@@ -165,44 +112,12 @@ Function Create-PipeServer {
 
     Try {
 
-        <#
-        [Management.ManagementOptions] $ConnectionOptions = [Management.ConnectionOptions]::new()
-        
-        $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
-
-        $ConnectionOptions.Impersonation = [Management.ImpersonationLevel]::Impersonate
-
-        $ConnectionOptions.EnablePrivileges = $true
-
-        [Management.ManagementScope] $ManagementScope = [Management.ManagementScope]::new()
-
-        $ManagementScope.Path = "\\$ComputerName\root\cimV2"
-
-        $ManagementScope.Options = $ConnectionOptions
-
-        [Management.ObjectGetOptions] $ObjectGetOptions = [Management.ObjectGetOptions]::new()
-
-        $ObjectGetOptions.Timeout = [TimeSpan]::MaxValue
-
-        $ObjectGetOptions.UseAmendedQualifiers = $true
-
-        [Management.ManagementClass] $ManagementClass = [Management.ManagementClass]::new()
-
-        $ManagementClass.Scope = $ManagementScope
-
-        $ManagementClass.Path = "\\$ComputerName\root\cimV2:Win32_Process"
-
-        $ManagementClass.Options = $ObjectGetOptions
-
-        #>
 
         [ScriptBlock] $ScriptBlock = {$PipeServer = [IO.Pipes.NamedPipeServerStream]::new('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose(); $NewPowerShell.Runspace.Close(); $NewPowerShell.Runspace.Dispose(); $NewRunspace.Close(); $NewRunspace.Dispose(); $NewPowerShell.Dispose()}
 
         [String] $Command = "&{ $($ScriptBlock.ToString()) }"
 
         [String] $CmdLine = "PowerShell.exe -command $Command"
-
-        #[Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
 
         [Management.ManagementBaseObject] $Process = Invoke-WmiMethod -ComputerName $ComputerName -Class Win32_Process -Name Create -ArgumentList $CmdLine
         
@@ -284,7 +199,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
            
 
                 $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
-
 
                 [Void] $PipeClient.Dispose()
 
