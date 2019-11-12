@@ -1,5 +1,5 @@
 
-Param(
+Param (
 
     [Parameter(Mandatory = $true)]
     [String] $CmdLine,
@@ -181,7 +181,6 @@ Add-Type -TypeDefinition @"
 "@
 
 
-
 Function Is-InWinPE {
 
 
@@ -211,10 +210,9 @@ Function Is-InWinPE {
 }
 
 
-
 [HashTable] $KnownReturn = @{
 
-    Success = 0
+    Success = 0x0
     OpenProcessFailure = 0x3E8
     OpenUserTokenFailure = 0x7D0
     DuplicateTokenFailure = 0xBB8
@@ -342,10 +340,8 @@ if ($ProcessCreated) {
 
 
 } else {
-
-           
+          
     $ExitCode = $KnownReturn.ProcessCreationFailure
- 
                     
 }
 
