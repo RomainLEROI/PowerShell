@@ -1,5 +1,5 @@
 
-Param(
+Param (
 
   [Parameter(Mandatory = $true)] 
   [String] $ComputerName,
@@ -8,7 +8,6 @@ Param(
   [ScriptBlock] $ScriptBlock
 
 )
-
 
 
 Function Invoke-ScriptBlock {
@@ -63,8 +62,6 @@ Function Invoke-ScriptBlock {
 }
 
 
-
-
 Function Create-PipeClient {
 
     Param(
@@ -73,7 +70,6 @@ Function Create-PipeClient {
         [String] $ComputerName
    
     )
-
 
     Try {
 
@@ -98,8 +94,6 @@ Function Create-PipeClient {
 }
 
 
-
-
 Function Create-PipeServer {
 
     Param(
@@ -108,7 +102,6 @@ Function Create-PipeServer {
         [String] $ComputerName
    
     )
-
 
     Try {
 
@@ -150,8 +143,6 @@ Function Create-PipeServer {
 }
 
 
-
-
 Function Is-Online {
 
     Param(
@@ -160,7 +151,6 @@ Function Is-Online {
         [String] $ComputerName
    
     )
-
 
     Try {
 
@@ -179,7 +169,6 @@ Function Is-Online {
     }
 
 }
-
 
 
 
@@ -202,26 +191,21 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 [Void] $PipeClient.Dispose()
 
-
                 Return $Return
 
 
             } else {
 
-
                 Return $null
-
 
             }
 
 
         } else {
 
-
             Return $null
 
         }
-
 
     }  else {
 
@@ -229,7 +213,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
     }
     
-
 } else {
 
     Write-Output -InputObject "The requested operation requires elevation"
