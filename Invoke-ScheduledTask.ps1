@@ -1,29 +1,3 @@
-<#
-
-.SYNOPSIS
-
-This script creates, runs and deletes scheduled task on remote computer and gets exit code back
-
-
-.NOTES
-
-Script must be executed with an account that has the adminstrator privileges on both local and remote computers
-No need to elevate process on local machine
-Scheduled task can't execute things from network if system account is used
-
-
-.EXAMPLE
-
-Windows PowerShell
-Copyright (C) 2016 Microsoft Corporation. All rights reserved.
-
-PS C:\Users\POKEDEX> .\Scripts\Invoke-ScheduledTask.ps1 -ComputerName SALAMESH -Sid S-1-5-18 -TaskName Test -Path C:\Test\Test.vbs
-Task Test finished with return code 0 on SALAMESH
-PS C:\Users\POKEDEX>
-
-#>
-
-
 
 Param (
 
