@@ -14,10 +14,7 @@ Param(
 )
 
 
-
-
 Function Is-Online {
-
 
     Param(
 
@@ -41,13 +38,9 @@ Function Is-Online {
 }
 
 
-
-
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
-
     if (Is-Online -ComputerName $ComputerName) {
-
 
         Try {
 
@@ -84,11 +77,9 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             if ($Process.returnvalue -eq 0) {
 
-
                 Write-Output -InputObject "Process was successfully created on $ComputerName"
 
                 if ($Wait) {
-
 
                     [Management.WQLEventQuery] $WqlEventQuery = [Management.WQLEventQuery]::new()
 
@@ -114,7 +105,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                     Write-Output -InputObject "Process finished with return code $ExitCode on $ComputerName"
 
-
                 } else {
 
                     [Management.ManagementEventWatcher] $ManagementEventWatcher = $null
@@ -127,15 +117,13 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 Return $ExitCode
 
-
             } else {
 
                 Write-Output -InputObject "Failed to create process on $ComputerName"
 
-                Return 10
+                Return $Process.returnvalue
 
             }
-
 
         } Catch {
 
@@ -161,13 +149,11 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
 
-
     } else {
 
         Write-Output -InputObject "$ComputerName is not online"
 
     } 
-
 
 } else {
 
