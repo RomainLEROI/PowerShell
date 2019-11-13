@@ -6,7 +6,7 @@ Param (
 
     [parameter(Mandatory = $true)]
     [ValidateSet('Add', 'Delete')]
-    [String] $operation,
+    [String] $Operation,
 
     [parameter(Mandatory = $false)]
     [String] $Account,
@@ -161,7 +161,6 @@ Function Get-NTAccount {
 }
 
 
-
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
 
@@ -199,7 +198,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             ProviderWrite = 0x10
             RemoteAccess = 0x20
             ReadSecurity = 0x20000
-	    WriteSecurity = 0x40000
+            WriteSecurity = 0x40000
         
         }
 
@@ -211,7 +210,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             USERS = "S-1-5-32-545"
 
         }
-
 
 
         [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
@@ -267,22 +265,19 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
                 $Ace.AccessMask = $accessMask
         
-                [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
-                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
                 if ($Deny) {
 
-                    $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
+                    $Ace.AceType = [Security.AccessControl.AccessControlType]::Deny
 
                 } else {
 
-                    $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
+                    $Ace.AceType = [Security.AccessControl.AccessControlType]::Allow
 
                 }
 
                 $Ace.Trustee = $Trustee
-                $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
+                $Ace.AceFlags = [Security.AccessControl.AceFlags]::ContainerInherit
       
                 $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
