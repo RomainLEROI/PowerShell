@@ -136,13 +136,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
 
-        $Ace
-
         [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
-
-
-        $Acl
-
 
         $Acl.AddAccessRule($Ace)
 
