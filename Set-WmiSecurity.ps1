@@ -289,7 +289,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 foreach ($Ace in $Acl.DACL) {
 
-                    if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
+                    if ($Ace.Trustee.SidString -ne $Sid) {
 
                         $NewDACL += $Ace.psobject.immediateBaseObject
 
