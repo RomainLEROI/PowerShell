@@ -121,9 +121,9 @@ Function Get-NTAccount {
 
             $Domain = $DomainAccount[0]
 
-            if (($Domain -eq ".") -or ($Domain -eq "BUILTIN") -or ($Domain -eq $env:COMPUTERNAME)) {
+            if (($Domain -eq ".") -or ($Domain -eq "BUILTIN") -or ($Domain -eq $ComputerName)) {
 
-                $Domain = $env:COMPUTERNAME
+                $Domain = $ComputerName
 
             }
 
@@ -142,7 +142,7 @@ Function Get-NTAccount {
 
         } Default {
 
-            $Domain = $env:COMPUTERNAME
+            $Domain = $ComputerName
 
             $AccountName = $Account
 
