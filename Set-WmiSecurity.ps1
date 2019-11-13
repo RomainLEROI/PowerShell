@@ -8,18 +8,19 @@ Param (
     [ValidateSet('Add', 'Delete')]
     [String] $operation,
 
-    [parameter(Mandatory = $true)]
+    [parameter(Mandatory = $false)]
     [String] $Account,
 
+    [parameter(Mandatory = $false)]
+    [ValidateSet('SYSTEM', 'ADMINISTRATORS', 'USERS')]
+    [String] $Group,
+    
     [parameter(Mandatory = $false)]
     [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity', 'WriteSecurity')]
     [string[]] $Permissions = $null,
 
     [parameter(Mandatory = $false)]
-    [string] $computerName = $env:COMPUTERNAME,
-
-    [parameter(Mandatory = $false)]
-    [Switch] $AllowInherit = $false,
+    [string] $ComputerName = $env:COMPUTERNAME,
 
     [parameter(Mandatory = $false)]
     [Switch] $Deny = $false
@@ -32,7 +33,6 @@ Function Is-Online {
     Param (
 
         [Parameter(Mandatory = $true)]
-
         [String] $ComputerName
 
     )
@@ -63,13 +63,12 @@ Function Is-LocalHost {
     Param (
 
         [Parameter(Mandatory = $true)]
-
         [String] $ComputerName
 
     
     )
 
-    Switch ($true) {
+    switch ($true) {
 
         ($ComputerName -eq $env:COMPUTERNAME) {
 
@@ -94,51 +93,29 @@ Function Is-LocalHost {
 }
 
 
+Function Get-NTAccount {
 
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
+    Param (
 
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName,
 
-        if (($Operation -eq "Add") -and ($null -eq $Permissions)) {
+        [Parameter(Mandatory = $true)]
+        [String] $Account
 
-            Throw "-Permissions must be specified for an add operation"
+    
+    )
 
-        } elseif (($Operation -eq "Delete") -and ($null -ne $Permissions)) {
+    [String[]] $DomainAccount
 
-            Throw "Permissions cannot be specified for a delete operation"
+    [String] $Domain
 
-        }
+    [String] $AccountName
 
-        [Hashtable] $PermissionTable = @{
-        
-            "Enable" = 0x1
-            "MethodExecute" = 0x2
-            "FullWrite" = 0x4
-            "PartialWrite" = 0x8
-            "ProviderWrite" = 0x10
-            "RemoteAccess" = 0x20
-            "ReadSecurity" = 0x20000
-            "WriteSecurity" = 0x40000
-        
-        }
+    switch ($true) {
 
-        [ComponentModel.Component] $Output = Invoke-WmiMethod -Namespace $Namespace -Path "__systemsecurity=@" -ComputerName $ComputerName -Name GetSecurityDescriptor
+        ($Account.Contains('\')) {
 
-        if ($Output.ReturnValue -ne 0) {
-
-            Throw "GetSecurityDescriptor failed: $($Output.ReturnValue)"
-
-        }
-
-        [ComponentModel.Component] $Acl = $Output.Descriptor
-
-        [String[]] $DomainAccount
-
-        [String] $Domain
-
-        [String] $AccountName
-
-        if ($Account.Contains('\')) {
 
             $DomainAccount = $Account.Split('\')
 
@@ -152,7 +129,9 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             $AccountName = $DomainAccount[1]
 
-        } elseif ($Account.Contains('@')) {
+
+        } ($Account.Contains('@')) {
+
 
             $DomainAccount = $Account.Split('@')
 
@@ -160,25 +139,117 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             $AccountName = $DomainAccount[0]
 
-        } else {
+
+        } Default {
 
             $Domain = $env:COMPUTERNAME
 
             $AccountName = $Account
 
         }
- 
-        [Management.ManagementBaseObject] $Win32Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$AccountName'" -ComputerName $ComputerName
 
-        if ($null -eq $Win32Account) {
+    }
 
-            Throw "Account $Account was not found"
+
+    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$AccountName'" -ComputerName $ComputerName
+
+    $NTAccount = New-Object –TypeName PSObject -Property @{'Name'=$AccountName;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
+
+    Return $NTAccount
+
+
+}
+
+
+
+if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
+
+
+    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
+
+
+        if (($Operation -eq "Add") -and ($null -eq $Permissions)) {
+
+            Throw "-Permissions must be specified for a -add operation"
+
+        } elseif (($Operation -eq "Delete") -and ($null -ne $Permissions)) {
+
+            Throw "-Permissions cannot be specified for a -delete operation"
 
         }
 
+
+        if (([String]::IsNullOrEmpty($Account)) -and ([String]::IsNullOrEmpty($Group))) {
+        
+            Throw "-Account or -Group must be specified"
+        
+        } elseif ((![String]::IsNullOrEmpty($Account)) -and (![String]::IsNullOrEmpty($Group))) {
+  
+            Throw "-Account and -Group must be specified together"
+
+        } 
+
+
+        [Hashtable] $PermissionTable = @{
+        
+            Enable = 0x1
+            MethodExecute = 0x2
+            FullWrite = 0x4
+            PartialWrite = 0x8
+            ProviderWrite = 0x10
+            RemoteAccess = 0x20
+            ReadSecurity = 0x20000
+            WriteSecurity = 0x40000
+        
+        }
+
+
+        [Hashtable] $GroupTable = @{
+        
+            SYSTEM = "S-1-5-18"
+            ADMINISTRATORS = "S-1-5-32-544"
+            USERS = "S-1-5-32-545"
+
+        }
+
+
+
+        [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
+
+        if ($output.ReturnValue -ne 0) {
+
+	        throw "GetSecurityDescriptor failed: $($output.ReturnValue)"
+
+        }
+
+        [ComponentModel.Component] $Acl = $Output.Descriptor
+
+        [String] $Sid
+
+        if (![String]::IsNullOrEmpty($Account)) {
+
+            [PSObject] $NTAccount = Get-NTAccount -ComputerName $ComputerName -Account $Account
+
+            if ($null -eq $NTAccount.Sid) {
+
+                Throw "NTAccount $Account was not found on $ComputerName"
+
+            }
+
+            $Sid = $NTAccount.Sid
+
+        } else {
+
+            $Sid = $GroupTable[$Group]
+
+        }
+
+        
         switch ($Operation) {
 
+
             "Add" {
+
 
                 [Int] $AccessMask = 0
 
@@ -188,28 +259,17 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
-                [Int] $OBJECT_INHERIT_ACE_FLAG = 0x1
-                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
-                [Management.ManagementBaseObject] $Ace = ([Management.ManagementClass]::new("Win32_Ace")).CreateInstance()
+                [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
+                $Trustee.SidString = $Sid
+
+
+                [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
                 $Ace.AccessMask = $accessMask
-
-                if ($AllowInherit) {
-
-                    $Ace.AceFlags = $OBJECT_INHERIT_ACE_FLAG + $CONTAINER_INHERIT_ACE_FLAG
-
-                } else {
-
-                    $Ace.AceFlags = 0
-
-                }
-
+        
                 [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1                     
-
-                [Management.ManagementBaseObject] $Trustee = ([Management.ManagementClass]::new("win32_Trustee")).CreateInstance()
-                $Trustee.SidString = $Win32Account.Sid
-                $Ace.Trustee = $Trustee
+                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
+                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
                 if ($Deny) {
 
@@ -221,10 +281,15 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
+                $Ace.Trustee = $Trustee
+                $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
+      
                 $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
+
             } "Delete" {
-     
+
+
                 [Management.ManagementBaseObject[]] $NewDACL = @()
 
                 foreach ($Ace in $Acl.DACL) {
@@ -239,17 +304,20 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
 
+
             }
 
         }
 
-        [ComponentModel.Component] $Output = Invoke-WmiMethod -Name "SetSecurityDescriptor" -ArgumentList $Acl.psobject.immediateBaseObject -Namespace $Namespace -Path "__systemsecurity=@" -ComputerName $ComputerName
-        
+
+        [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.psobject.immediateBaseObject
+
         if ($Output.ReturnValue -ne 0) {
 
-            Throw "SetSecurityDescriptor failed: $($output.ReturnValue)"
+	        Throw "SetSecurityDescriptor failed: $($output.ReturnValue)"
 
         }
+
 
     }  else {
 
