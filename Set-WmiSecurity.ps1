@@ -184,7 +184,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         
         } elseif ((![String]::IsNullOrEmpty($Account)) -and (![String]::IsNullOrEmpty($Group))) {
   
-            Throw "-Account and -Group must be specified together"
+            Throw "-Account and -Group cannot be specified together"
 
         } 
 
