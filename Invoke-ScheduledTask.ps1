@@ -44,7 +44,42 @@ Function Is-Online {
 }
 
 
-if (Is-Online -ComputerName $ComputerName) {
+Function Is-LocalHost {
+
+    Param (
+
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName
+
+    
+    )
+
+    switch ($true) {
+
+        ($ComputerName -eq $env:COMPUTERNAME) {
+
+            Return $true
+
+        } ($ComputerName -eq 'localhost') {
+
+            Return $true
+
+        } ($ComputerName -eq '.') {
+
+            Return $true
+
+        } Default {
+
+            Return $false
+
+        }
+
+    }
+
+}
+
+
+if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
     Try {
 
