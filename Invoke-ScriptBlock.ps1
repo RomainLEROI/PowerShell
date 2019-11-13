@@ -12,7 +12,7 @@ Param (
 
 Function Invoke-ScriptBlock {
 
-    Param(
+    Param (
 
         [Parameter(Mandatory = $true)]
         [IO.Pipes.NamedPipeClientStream] $PipeClient,
@@ -64,7 +64,7 @@ Function Invoke-ScriptBlock {
 
 Function Create-PipeClient {
 
-    Param(
+    Param (
 
         [Parameter(Mandatory = $true)]
         [String] $ComputerName
@@ -96,7 +96,7 @@ Function Create-PipeClient {
 
 Function Create-PipeServer {
 
-    Param(
+    Param (
 
         [Parameter(Mandatory = $true)]
         [String] $ComputerName
@@ -145,7 +145,7 @@ Function Create-PipeServer {
 
 Function Is-Online {
 
-    Param(
+    Param (
 
         [Parameter(Mandatory = $true)]
         [String] $ComputerName
@@ -171,11 +171,45 @@ Function Is-Online {
 }
 
 
+Function Is-LocalHost {
+
+    Param (
+
+        [Parameter(Mandatory = $true)]
+        [String] $ComputerName
+
+    
+    )
+
+    switch ($true) {
+
+        ($ComputerName -eq $env:COMPUTERNAME) {
+
+            Return $true
+
+        } ($ComputerName -eq 'localhost') {
+
+            Return $true
+
+        } ($ComputerName -eq '.') {
+
+            Return $true
+
+        } Default {
+
+            Return $false
+
+        }
+
+    }
+
+}
+
 
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
 
-    if (Is-Online -ComputerName $ComputerName) {
+    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
 
         if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
