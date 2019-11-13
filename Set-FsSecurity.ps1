@@ -32,6 +32,7 @@ Function Is-Online {
 
         [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
+
         Return $Result
 
 
@@ -114,34 +115,43 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         }
 
 
-        [Int] $InheritanceFlag
+        if (Test-Path -Path $Path) {
 
-        [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+            [Int] $InheritanceFlag
 
-        [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+            [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+
+            [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
 
 
-        if ((Get-Item -Path $Path).PSIsContainer) {
+            if ((Get-Item -Path $Path).PSIsContainer) {
 
-            $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
+                $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
          
-            [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+
+
+            } else {
+
+                $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
+         
+                [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+
+            }
+
+
+            [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
+
+            $Acl.AddAccessRule($Ace)
+
+            Set-Acl -Path $Path -AclObject $Acl
 
 
         } else {
 
-            $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
-         
-            [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+            Write-Output -InputObject "$Path not found"
 
         }
-
-        [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
-
-        $Acl.AddAccessRule($Ace)
-
-        Set-Acl -Path $Path -AclObject $Acl
- 
 
     }  else {
 
