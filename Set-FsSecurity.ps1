@@ -83,73 +83,81 @@ Function Is-LocalHost {
 }
 
 
-if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
+if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
 
-    [Hashtable] $PermissionTable = @{
+    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
+
+
+        [Hashtable] $PermissionTable = @{
                  
-        FullControl = [Security.AccessControl.FileSystemRights]::FullControl
-        Modify = [Security.AccessControl.FileSystemRights]::Modify
-        ReadAndExecute = [Security.AccessControl.FileSystemRights]::ReadAndExecute
-        Read = [Security.AccessControl.FileSystemRights]::Read
-        Write = [Security.AccessControl.FileSystemRights]::Write
+            FullControl = [Security.AccessControl.FileSystemRights]::FullControl
+            Modify = [Security.AccessControl.FileSystemRights]::Modify
+            ReadAndExecute = [Security.AccessControl.FileSystemRights]::ReadAndExecute
+            Read = [Security.AccessControl.FileSystemRights]::Read
+            Write = [Security.AccessControl.FileSystemRights]::Write
         
-    }
+        }
 
      
-    [Int] $AccessMask = 0
+        [Int] $AccessMask = 0
 
-    foreach ($Permission in $Permissions) {
+        foreach ($Permission in $Permissions) {
 
-        $AccessMask += $PermissionTable[$Permission]
+            $AccessMask += $PermissionTable[$Permission]
 
-    }
+        }
 
-    if (!(Is-LocalHost -ComputerName $ComputerName) -and ($Path -match "^[a-zA-Z]:\\")) {
+        if (!(Is-LocalHost -ComputerName $ComputerName) -and ($Path -match "^[a-zA-Z]:\\")) {
 
-        $Path = "\\$ComputerName\$($Path.Replace(":", "$"))"
+            $Path = "\\$ComputerName\$($Path.Replace(":", "$"))"
 
-    }
-
-
-    [Int] $InheritanceFlag
-
-    [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
-
-    [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+        }
 
 
-    if ((Get-Item -Path $Path).PSIsContainer) {
+        [Int] $InheritanceFlag
 
-        $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
+        [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+
+        [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+
+
+        if ((Get-Item -Path $Path).PSIsContainer) {
+
+            $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
          
-        [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+            [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
 
-    } else {
+        } else {
 
-        $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
+            $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
          
-        [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+            [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-    }
+        }
 
-    $Ace
+        $Ace
 
-    [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
-
-
-    $Acl
+        [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
 
 
-    $Acl.AddAccessRule($Ace)
+        $Acl
 
-    Set-Acl -Path $Path -AclObject $Acl
+
+        $Acl.AddAccessRule($Ace)
+
+        Set-Acl -Path $Path -AclObject $Acl
  
 
-}  else {
+    }  else {
 
-    Write-Output -InputObject "$ComputerName is not online"
+        Write-Output -InputObject "$ComputerName is not online"
+
+    }
+   
+} else {
+
+    Write-Output -InputObject "The requested operation requires elevation"
 
 }
-   
