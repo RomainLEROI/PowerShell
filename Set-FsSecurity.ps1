@@ -5,7 +5,7 @@ Param (
     [String] $Path,
 
     [parameter(Mandatory = $true)]
-    # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<User>, <Computer>\<User>...
+    # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
     [String] $Identity,
 
     [parameter(Mandatory = $false)]
