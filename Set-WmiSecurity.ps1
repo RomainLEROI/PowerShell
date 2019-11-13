@@ -16,7 +16,7 @@ Param (
     [String] $Group,
     
     [parameter(Mandatory = $false)]
-    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity')]
+    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity', 'WriteSecurity')]
     [string[]] $Permissions = $null,
 
     [parameter(Mandatory = $false)]
@@ -199,6 +199,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             ProviderWrite = 0x10
             RemoteAccess = 0x20
             ReadSecurity = 0x20000
+	    WriteSecurity = 0x40000
         
         }
 
