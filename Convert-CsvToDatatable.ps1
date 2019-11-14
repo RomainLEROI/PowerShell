@@ -39,7 +39,7 @@ foreach ($Item in $ValidHeaders.GetEnumerator()) {
 
     [Decimal] $PercentDone = [Math]::Round((($Done / $Headers) * 100), 1, [MidpointRounding]::AwayFromZero)
 
-    Write-Progress -Activity ("Formating Devices headers" + "." * $Point) -Status "$PercentDone% done:" -PercentComplete $PercentDone;
+    Write-Progress -Activity ("Formating headers" + "." * $Point) -Status "$PercentDone% done:" -PercentComplete $PercentDone;
 
 }
 
@@ -51,14 +51,17 @@ $ExportContent = Import-Csv -Path $CsvPath
 
 foreach ($NoteProperty in ($ExportContent | Get-Member -MemberType NoteProperty)) {
 
+    switch ($NoteProperty.Name) {
 
-    if ($NoteProperty.Name -eq "LastReported") {
+        "LastReported" {
 
-        [Void] $DataTable.columns.add($NoteProperty.Name, [DateTime])
+            [Void] $DataTable.columns.add($NoteProperty.Name, [DateTime])
 
-    } else {
+        } default {
 
-        [Void] $DataTable.columns.add($NoteProperty.Name, [String])
+            [Void] $DataTable.columns.add($NoteProperty.Name, [String])
+
+        }
 
     }
 
