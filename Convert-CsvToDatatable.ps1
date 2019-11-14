@@ -3,7 +3,7 @@ Param (
 
 	[Parameter(Mandatory = $true)]
 	[ValidateScript({ Test-Path -Path $_ })]
-	$CsvPath
+	[String] $CsvPath
 
 )
 
