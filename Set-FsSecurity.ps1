@@ -119,38 +119,48 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         if (Test-Path -Path $Path) {
 
             
-
-            [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
-
-            [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+            Try {
 
 
-            if ((Get-Item -Path $Path).PSIsContainer) {
+                [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
 
-                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
+                [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+
+
+                if ((Get-Item -Path $Path).PSIsContainer) {
+
+                    [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
          
-                [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                    [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-                [Security.AccessControl.DirectorySecurity] $Acl = [IO.Directory]::GetAccessControl($path)
+                    [Security.AccessControl.DirectorySecurity] $Acl = [IO.Directory]::GetAccessControl($path)
 
-                $Acl.AddAccessRule($Ace)
+                    $Acl.AddAccessRule($Ace)
 
-                [IO.Directory]::SetAccessControl($Path, $Acl)
+                    [IO.Directory]::SetAccessControl($Path, $Acl)
 
 
-            } else {
+                } else {
 
-                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
+                    [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
          
-                [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                    [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-                [Security.AccessControl.FileSecurity] $Acl = [IO.File]::GetAccessControl($path)
+                    [Security.AccessControl.FileSecurity] $Acl = [IO.File]::GetAccessControl($path)
 
-                $Acl.AddAccessRule($Ace)
+                    $Acl.AddAccessRule($Ace)
 
-                [IO.File]::SetAccessControl($Path, $Acl)
+                    [IO.File]::SetAccessControl($Path, $Acl)
+
+                }
+
+
+            } Catch {
+
+                Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
             }
+
 
         } else {
 
