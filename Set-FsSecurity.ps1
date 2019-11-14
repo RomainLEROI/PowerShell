@@ -130,6 +130,12 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
          
                 [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
+                [Security.AccessControl.DirectorySecurity] $Acl = [IO.Directory]::GetAccessControl($path)
+
+                $Acl.AddAccessRule($Ace)
+
+                [IO.Directory]::SetAccessControl($Path, $Acl)
+
 
             } else {
 
@@ -137,15 +143,13 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
          
                 [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
+                [Security.AccessControl.FileSecurity] $Acl = [IO.File]::GetAccessControl($path)
+
+                $Acl.AddAccessRule($Ace)
+
+                [IO.File]::SetAccessControl($Path, $Acl)
+
             }
-
-
-            [Security.AccessControl.FileSystemSecurity] $Acl = Get-Acl -Path $Path
-
-            $Acl.AddAccessRule($Ace)
-
-            Set-Acl -Path $Path -AclObject $Acl
-
 
         } else {
 
