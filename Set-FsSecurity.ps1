@@ -9,14 +9,15 @@ Param (
     [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
 
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
     [ValidateSet('FullControl', 'Modify', 'ReadAndExecute', 'Read', 'Write')]
-    [String[]] $Permissions = $null,
+    [String[]] $Permissions,
 
     [Parameter(Mandatory = $false)]
     [String] $ComputerName = $env:COMPUTERNAME
   
 )
+
 
 
 Function Is-Online {
@@ -117,7 +118,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         if (Test-Path -Path $Path) {
 
-            [Int] $InheritanceFlag
+            
 
             [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
 
@@ -126,7 +127,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             if ((Get-Item -Path $Path).PSIsContainer) {
 
-                $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
+                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
          
                 [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
@@ -139,7 +140,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             } else {
 
-                $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
+                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
          
                 [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
@@ -153,7 +154,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         } else {
 
-            Write-Output -InputObject "$Path not found"
+            Write-Output -InputObject "Path not found not found"
 
         }
 
