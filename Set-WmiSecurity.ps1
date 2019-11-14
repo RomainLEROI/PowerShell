@@ -5,10 +5,6 @@ Param (
     [String] $Namespace,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet('Add', 'Delete')]
-    [String] $Operation,
-
-    [Parameter(Mandatory = $true)]
     # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
     [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
@@ -144,17 +140,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
 
-        if (($Operation -eq "Add") -and ($null -eq $Permissions)) {
-
-            Throw "-Permissions must be specified for a -add operation"
-
-        } elseif (($Operation -eq "Delete") -and ($null -ne $Permissions)) {
-
-            Throw "-Permissions cannot be specified for a -delete operation"
-
-        }
-
-
         [Hashtable] $PermissionTable = @{
         
             Enable = 0x1
@@ -191,69 +176,39 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             [String] $Sid = $NTIdentity.Sid
 
-     
-            switch ($Operation) {
+            [Int] $AccessMask = 0
 
+            foreach ($Permission in $Permissions) {
 
-                "Add" {
-
-
-                    [Int] $AccessMask = 0
-
-                    foreach ($Permission in $Permissions) {
-
-                        $AccessMask += $PermissionTable[$Permission]
-
-                    }
-
-
-                    [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
-                    $Trustee.SidString = $Sid
-
-                    [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
-                    $Ace.AccessMask = $accessMask
-        
-                    [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-                    [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
-                    [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
-
-                    if ($Deny) {
-
-                        $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
-
-                    } else {
-
-                        $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
-
-                    }
-
-                    $Ace.Trustee = $Trustee
-                    $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
-      
-                    $Acl.DACL += $Ace.PsObject.immediateBaseObject
-
-
-                } "Delete" {
-
-
-                    [Management.ManagementBaseObject[]] $NewDACL = @()
-                    
-                    foreach ($Ace in $Acl.DACL) {
-
-                        if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
-
-                            $NewDACL += $Ace.psobject.immediateBaseObject
-
-                        }
-
-                    }
-
-                    $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
-
-
-                }
+                $AccessMask += $PermissionTable[$Permission]
 
             }
+
+
+            [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
+            $Trustee.SidString = $Sid
+
+            [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
+            $Ace.AccessMask = $accessMask
+        
+            [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
+            [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
+            [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
+
+            if ($Deny) {
+
+                $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
+
+            } else {
+
+                $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
+
+            }
+
+            $Ace.Trustee = $Trustee
+            $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
+      
+            $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
 
             [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.psobject.immediateBaseObject
