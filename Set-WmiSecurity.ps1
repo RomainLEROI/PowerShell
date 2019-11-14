@@ -107,7 +107,7 @@ Function Get-NTIdentity {
 
     [String] $Domain = $DomainAccount[0]
 
-    if ($Domain -eq "BUILTIN") {
+    if (($Domain -eq "BUILTIN") -or ($Domain -eq "AUTORITE NT")) {
 
         $Domain = $ComputerName
 
