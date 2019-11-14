@@ -1,28 +1,26 @@
 
 Param ( 
 
-    [parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)]
     [String] $Namespace,
 
-    [parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)]
     [ValidateSet('Add', 'Delete')]
     [String] $Operation,
 
-    [parameter(Mandatory = $false)]
-    [String] $Account,
-
-    [parameter(Mandatory = $false)]
-    [ValidateSet('SYSTEM', 'ADMINISTRATORS', 'USERS')]
-    [String] $Group,
+    [Parameter(Mandatory = $true)]
+    # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
+    [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
+    [String] $Identity,
     
-    [parameter(Mandatory = $false)]
-    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity', 'WriteSecurity')]
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity')]
     [string[]] $Permissions = $null,
 
-    [parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false)]
     [string] $ComputerName = $env:COMPUTERNAME,
 
-    [parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false)]
     [Switch] $Deny = $false
   
 )
@@ -92,7 +90,7 @@ Function Is-LocalHost {
 }
 
 
-Function Get-NTAccount {
+Function Get-NTIdentity {
 
     Param (
 
@@ -100,64 +98,45 @@ Function Get-NTAccount {
         [String] $ComputerName,
 
         [Parameter(Mandatory = $true)]
-        [String] $Account
+        [String] $Identity
 
     
     )
 
-    [String[]] $DomainAccount
+    [String[]] $DomainAccount = $Identity.Split('\')
 
-    [String] $Domain
+    [String] $Domain = $DomainAccount[0]
 
-    [String] $AccountName
+    if ($Domain -eq "BUILTIN") {
 
-    switch ($true) {
-
-        ($Account.Contains('\')) {
-
-
-            $DomainAccount = $Account.Split('\')
-
-            $Domain = $DomainAccount[0]
-
-            if (($Domain -eq ".") -or ($Domain -eq "BUILTIN") -or ($Domain -eq $ComputerName)) {
-
-                $Domain = $ComputerName
-
-            }
-
-            $AccountName = $DomainAccount[1]
-
-
-        } ($Account.Contains('@')) {
-
-
-            $DomainAccount = $Account.Split('@')
-
-            $Domain = $DomainAccount[1].Split('.')[0]
-
-            $AccountName = $DomainAccount[0]
-
-
-        } Default {
-
-            $Domain = $ComputerName
-
-            $AccountName = $Account
-
-        }
+        $Domain = $ComputerName
 
     }
 
+    [String] $Account = $DomainAccount[1]
 
-    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$AccountName'" -ComputerName $ComputerName
 
-    $NTAccount = New-Object –TypeName PSObject -Property @{'Name'=$AccountName;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
+    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$Account'" -ComputerName $ComputerName
 
-    Return $NTAccount
+    [PSObject] $NTIdentity
+
+    if ($null -eq $Win32_Account) {
+
+        [Management.ManagementBaseObject] $Win32_Group = Get-WmiObject -Class "Win32_Group" -Filter "Domain='$Domain' and Name='$Account'" -ComputerName $ComputerName
+
+        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Account;'Domain'=$Domain;'Sid'=$Win32_Group.Sid}
+
+    } else {
+
+        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Account;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
+
+    }
+
+    Return $NTIdentity
 
 
 }
+
 
 
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
@@ -177,17 +156,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         }
 
 
-        if (([String]::IsNullOrEmpty($Account)) -and ([String]::IsNullOrEmpty($Group))) {
-        
-            Throw "-Account or -Group must be specified"
-        
-        } elseif ((![String]::IsNullOrEmpty($Account)) -and (![String]::IsNullOrEmpty($Group))) {
-  
-            Throw "-Account and -Group cannot be specified together"
-
-        } 
-
-
         [Hashtable] $PermissionTable = @{
         
             Enable = 0x1
@@ -197,17 +165,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             ProviderWrite = 0x10
             RemoteAccess = 0x20
             ReadSecurity = 0x20000
-            WriteSecurity = 0x40000
         
-        }
-
-
-        [Hashtable] $GroupTable = @{
-        
-            SYSTEM = "S-1-5-18"
-            ADMINISTRATORS = "S-1-5-32-544"
-            USERS = "S-1-5-32-545"
-
         }
 
 
@@ -219,29 +177,20 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
 
+
         [ComponentModel.Component] $Acl = $Output.Descriptor
 
-        [String] $Sid
+        [PSObject] $NTIdentity = Get-NTIdentity -ComputerName $ComputerName -Identity $Identity
 
-        if (![String]::IsNullOrEmpty($Account)) {
+        if ($null -eq $NTIdentity.Sid) {
 
-            [PSObject] $NTAccount = Get-NTAccount -ComputerName $ComputerName -Account $Account
-
-            if ($null -eq $NTAccount.Sid) {
-
-                Throw "NTAccount $Account was not found on $ComputerName"
-
-            }
-
-            $Sid = $NTAccount.Sid
-
-        } else {
-
-            $Sid = $GroupTable[$Group]
+            Throw "NTAccount $Account was not found"
 
         }
 
-        
+        [String] $Sid = $NTIdentity.Sid
+
+     
         switch ($Operation) {
 
 
@@ -264,19 +213,22 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
                 $Ace.AccessMask = $accessMask
         
+                [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
+                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
+                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
                 if ($Deny) {
 
-                    $Ace.AceType = [Security.AccessControl.AccessControlType]::Deny
+                    $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
 
                 } else {
 
-                    $Ace.AceType = [Security.AccessControl.AccessControlType]::Allow
+                    $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
 
                 }
 
                 $Ace.Trustee = $Trustee
-                $Ace.AceFlags = [Security.AccessControl.AceFlags]::ContainerInherit
+                $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
       
                 $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
@@ -288,7 +240,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 foreach ($Ace in $Acl.DACL) {
 
-                    if ($Ace.Trustee.SidString -ne $Sid) {
+                    if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
 
                         $NewDACL += $Ace.psobject.immediateBaseObject
 
