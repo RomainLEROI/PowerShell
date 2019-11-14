@@ -103,9 +103,9 @@ Function Get-NTIdentity {
     
     )
 
-    [String[]] $DomainAccount = $Identity.Split('\')
+    [String[]] $Account = $Identity.Split('\')
 
-    [String] $Domain = $DomainAccount[0]
+    [String] $Domain = $Account[0]
 
     if (($Domain -eq "BUILTIN") -or ($Domain -eq "AUTORITE NT")) {
 
@@ -113,22 +113,21 @@ Function Get-NTIdentity {
 
     }
 
-    [String] $Account = $DomainAccount[1]
+    [String] $Name = $Account[1]
 
-
-    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$Account'" -ComputerName $ComputerName
+    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
 
     [PSObject] $NTIdentity
 
     if ($null -eq $Win32_Account) {
 
-        [Management.ManagementBaseObject] $Win32_Group = Get-WmiObject -Class "Win32_Group" -Filter "Domain='$Domain' and Name='$Account'" -ComputerName $ComputerName
+        [Management.ManagementBaseObject] $Win32_Group = Get-WmiObject -Class "Win32_Group" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
 
-        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Account;'Domain'=$Domain;'Sid'=$Win32_Group.Sid}
+        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Group.Sid}
 
     } else {
 
-        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Account;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
+        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
 
     }
 
