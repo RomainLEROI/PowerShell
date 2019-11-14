@@ -130,45 +130,74 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         [Int] $AccessMask = $PermissionTable[$Permission]
 
 
-        [Microsoft.Win32.RegistryKey] $RootKey
+        Try {
 
-        if (Is-LocalHost -ComputerName $ComputerName) {
 
-            $RootKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($Root, $Node)
+            [Microsoft.Win32.RegistryKey] $RootKey
 
-        } else {
+            if (Is-LocalHost -ComputerName $ComputerName) {
 
-            $RootKey = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey($Root, $ComputerName, $Node)
+                $RootKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($Root, $Node)
+
+            } else {
+
+                $RootKey = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey($Root, $ComputerName, $Node)
+
+            }
+
+
+            [Microsoft.Win32.RegistryKey] $Key = $RootKey.OpenSubKey($Path, $true)
+
+
+            if ($null -ne $Key) {
+
+                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit 
+
+                [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+
+                [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+
+                [Security.AccessControl.RegistryAccessRule] $Ace = [Security.AccessControl.RegistryAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+
+                [Security.AccessControl.RegistrySecurity] $Acl = $Key.GetAccessControl()
+
+                $Acl.AddAccessRule($Ace)
+
+                if (!(Is-LocalHost -ComputerName $ComputerName)) {
+
+                    $Acl.SetAccessRuleProtection($true, $true)
+                }
+
+                $Key.SetAccessControl($Acl)
+
+            } else {
+
+                Write-Output -InputObject "Registry key not found not found"
+
+            }
+
+
+        } Catch {
+
+            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+
+        } Finally {
+
+
+            foreach ($Disposable in @($Key, $RootKey)) {
+
+                if ($null -ne $Disposable) {
+
+                    [Void] $Disposable.Close()
+                    [Void] $Disposable.Dispose()
+
+                }
+
+            }
 
         }
 
-
-        [Microsoft.Win32.RegistryKey] $Key = $RootKey.OpenSubKey($Path, $true)
-
-        [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit 
-
-        [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
-
-        [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
-
-        [Security.AccessControl.RegistryAccessRule] $Ace = [Security.AccessControl.RegistryAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
-
-        [Security.AccessControl.RegistrySecurity] $Acl = $Key.GetAccessControl()
-
-        $Acl.AddAccessRule($Ace)
-
-        if (!(Is-LocalHost -ComputerName $ComputerName)) {
-
-            $Acl.SetAccessRuleProtection($true, $true)
-        }
-
-        $Key.SetAccessControl($Acl)
-
-        $Key.Close()
-
-        $Key.Dispose()
-
-    
+ 
     }  else {
 
         Write-Output -InputObject "$ComputerName is not online"
