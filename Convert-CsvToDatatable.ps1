@@ -27,7 +27,7 @@ Param (
 
 [Int] $Headers = ($ValidHeaders.GetEnumerator() | Measure-Object).Count
 
-[Object[]] $ExportContent = (Get-Content -Path $CsvPath)
+[String[]] $ExportContent = (Get-Content -Path $CsvPath)
 
 [Int] $Done = 0
 
@@ -74,7 +74,7 @@ $Done = 0
 
 foreach ($Obj in $ExportContent) {
 
-    [Object] $Row = $DataTable.NewRow()
+    [Data.DataRow] $Row = $DataTable.NewRow()
 
     foreach ($Column in $DataTable.columns) {
 
