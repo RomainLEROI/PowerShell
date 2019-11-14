@@ -167,100 +167,121 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             ReadSecurity = 0x20000
         
         }
-
-
-        [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
-
-        if ($output.ReturnValue -ne 0) {
-
-	        throw "GetSecurityDescriptor failed: $($output.ReturnValue)"
-
-        }
-
-
-        [ComponentModel.Component] $Acl = $Output.Descriptor
-
-        [PSObject] $NTIdentity = Get-NTIdentity -ComputerName $ComputerName -Identity $Identity
-
-        if ($null -eq $NTIdentity.Sid) {
-
-            Throw "NTAccount $Account was not found"
-
-        }
-
-        [String] $Sid = $NTIdentity.Sid
-
-     
-        switch ($Operation) {
-
-
-            "Add" {
-
-
-                [Int] $AccessMask = 0
-
-                foreach ($Permission in $Permissions) {
-
-                    $AccessMask += $PermissionTable[$Permission]
-
-                }
-
-
-                [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
-                $Trustee.SidString = $Sid
-
-
-                [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
-                $Ace.AccessMask = $accessMask
         
-                [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
-                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
-                if ($Deny) {
-
-                    $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
-
-                } else {
-
-                    $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
-
-                }
-
-                $Ace.Trustee = $Trustee
-                $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
-      
-                $Acl.DACL += $Ace.PsObject.immediateBaseObject
+        Try {
 
 
-            } "Delete" {
+            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
 
+            if ($Output.ReturnValue -ne 0) {
 
-                [Management.ManagementBaseObject[]] $NewDACL = @()
-
-                foreach ($Ace in $Acl.DACL) {
-
-                    if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
-
-                        $NewDACL += $Ace.psobject.immediateBaseObject
-
-                    }
-
-                }
-
-                $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
-
+	            throw "GetSecurityDescriptor failed: $($output.ReturnValue)"
 
             }
 
-        }
+            [ComponentModel.Component] $Acl = $Output.Descriptor
+            
+            [PSObject] $NTIdentity = Get-NTIdentity -ComputerName $ComputerName -Identity $Identity
+
+            if ($null -eq $NTIdentity.Sid) {
+
+                Throw "NTAccount $Account was not found"
+
+            }
+
+            [String] $Sid = $NTIdentity.Sid
+
+     
+            switch ($Operation) {
 
 
-        [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.psobject.immediateBaseObject
+                "Add" {
 
-        if ($Output.ReturnValue -ne 0) {
 
-	        Throw "SetSecurityDescriptor failed: $($output.ReturnValue)"
+                    [Int] $AccessMask = 0
+
+                    foreach ($Permission in $Permissions) {
+
+                        $AccessMask += $PermissionTable[$Permission]
+
+                    }
+
+
+                    [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
+                    $Trustee.SidString = $Sid
+
+                    [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
+                    $Ace.AccessMask = $accessMask
+        
+                    [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
+                    [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
+                    [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
+
+                    if ($Deny) {
+
+                        $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
+
+                    } else {
+
+                        $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
+
+                    }
+
+                    $Ace.Trustee = $Trustee
+                    $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
+      
+                    $Acl.DACL += $Ace.PsObject.immediateBaseObject
+
+
+                } "Delete" {
+
+
+                    [Management.ManagementBaseObject[]] $NewDACL = @()
+                    
+                    foreach ($Ace in $Acl.DACL) {
+
+                        if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
+
+                            $NewDACL += $Ace.psobject.immediateBaseObject
+
+                        }
+
+                    }
+
+                    $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
+
+
+                }
+
+            }
+
+
+            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.psobject.immediateBaseObject
+
+            if ($Output.ReturnValue -ne 0) {
+
+	            Throw "SetSecurityDescriptor failed: $($Output.ReturnValue)"
+
+            }
+
+
+        } Catch {
+
+            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+
+        } Finally {
+
+
+            foreach ($Disposable in @($Output, $Acl, $Trustee, $Ace, $NewDACL)) {
+
+                if ($null -ne $Disposable) {
+
+                    [Void] $Disposable.Dispose()
+
+                }
+
+            }
 
         }
 
