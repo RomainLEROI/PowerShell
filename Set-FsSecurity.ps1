@@ -6,6 +6,7 @@ Param (
 
     [Parameter(Mandatory = $true)]
     # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
+    [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
 
     [Parameter(Mandatory = $false)]
