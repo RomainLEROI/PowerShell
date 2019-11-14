@@ -1,18 +1,18 @@
 
 Param ( 
 
-    [parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)]
     [String] $Path,
 
-    [parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $true)]
     # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
     [String] $Identity,
 
-    [parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet('FullControl', 'Modify', 'ReadAndExecute', 'Read', 'Write')]
     [String[]] $Permissions = $null,
 
-    [parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $false)]
     [String] $ComputerName = $env:COMPUTERNAME
   
 )
