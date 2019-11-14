@@ -23,7 +23,7 @@ Param(
 )
 
 
-if (-not ([System.Management.Automation.PSTypeName]'ProcessAs').Type) {
+if (!([Management.Automation.PSTypeName]'ProcessAs').Type) {
 
     Add-Type -TypeDefinition @"
 
