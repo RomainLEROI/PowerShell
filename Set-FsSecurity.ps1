@@ -9,13 +9,20 @@ Param (
     [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
 
+    [Parameter(Mandatory = $false)]
+    [String] $ComputerName = $env:COMPUTERNAME,
+
     [Parameter(Mandatory = $true)]
     [ValidateSet('FullControl', 'Modify', 'ReadAndExecute', 'Read', 'Write')]
-    [String[]] $Permissions,
+    [String[]] $Rights,
 
     [Parameter(Mandatory = $false)]
-    [String] $ComputerName = $env:COMPUTERNAME
-  
+    [ValidateSet('Allow', 'Deny')]
+    [String] $AccessType = 'Allow',
+
+    [Parameter(Mandatory = $false)]
+    [Switch] $Remove
+
 )
 
 
@@ -90,24 +97,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
 
-        [Hashtable] $PermissionTable = @{
-                 
-            FullControl = [Security.AccessControl.FileSystemRights]::FullControl
-            Modify = [Security.AccessControl.FileSystemRights]::Modify
-            ReadAndExecute = [Security.AccessControl.FileSystemRights]::ReadAndExecute
-            Read = [Security.AccessControl.FileSystemRights]::Read
-            Write = [Security.AccessControl.FileSystemRights]::Write
-        
-        }
-
-     
-        [Int] $AccessMask = 0
-
-        foreach ($Permission in $Permissions) {
-
-            $AccessMask += $PermissionTable[$Permission]
-
-        }
 
         if (!(Is-LocalHost -ComputerName $ComputerName) -and ($Path -match "^[a-zA-Z]:\\")) {
 
@@ -122,9 +111,35 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             Try {
 
 
+                [Hashtable] $RightsTable = @{
+                 
+                    FullControl = [Security.AccessControl.FileSystemRights]::FullControl
+                    Modify = [Security.AccessControl.FileSystemRights]::Modify
+                    ReadAndExecute = [Security.AccessControl.FileSystemRights]::ReadAndExecute
+                    Read = [Security.AccessControl.FileSystemRights]::Read
+                    Write = [Security.AccessControl.FileSystemRights]::Write
+        
+                }
+
+     
+                [Int] $AccessMask = 0
+
+                foreach ($Right in $Rights) {
+
+                    $AccessMask += $RightsTable[$Right]
+
+                }
+
                 [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
 
-                [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
+                [Hashtable] $AccessTypeTable = @{
+                 
+                    Allow = [Security.AccessControl.AccessControlType]::Allow
+                    Deny = [Security.AccessControl.AccessControlType]::Deny 
+        
+                }
+
+                [Int] $AccessControlType = $AccessTypeTable[$AccessType]
 
 
                 if ((Get-Item -Path $Path).PSIsContainer) {
@@ -135,7 +150,15 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                     [Security.AccessControl.DirectorySecurity] $Acl = [IO.Directory]::GetAccessControl($path)
 
-                    $Acl.AddAccessRule($Ace)
+                    if ($Remove) {
+
+                        $Acl.RemoveAccessRule($Ace)
+
+                    } else {
+
+                        $Acl.AddAccessRule($Ace)
+
+                    }
 
                     [IO.Directory]::SetAccessControl($Path, $Acl)
 
@@ -148,7 +171,15 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                     [Security.AccessControl.FileSecurity] $Acl = [IO.File]::GetAccessControl($path)
 
-                    $Acl.AddAccessRule($Ace)
+                    if ($Remove) {
+
+                        $Acl.RemoveAccessRule($Ace)
+
+                    } else {
+
+                        $Acl.AddAccessRule($Ace)
+
+                    }
 
                     [IO.File]::SetAccessControl($Path, $Acl)
 
