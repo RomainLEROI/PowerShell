@@ -4,11 +4,11 @@ Param (
     [Parameter(Mandatory = $true)]
     [ValidateSet('LocalMachine', 'ClassesRoot', 'Users')]
     [String] $Hive,
-    
+
     [Parameter(Mandatory = $true)]
     [ValidateSet('Registry32', 'Registry64')]
     [String] $View,
-    
+
     [Parameter(Mandatory = $true)]
     [String] $Path,
 
@@ -17,13 +17,20 @@ Param (
     [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
 
+    [Parameter(Mandatory = $false)]
+    [String] $ComputerName = $env:COMPUTERNAME,
+
     [Parameter(Mandatory = $true)]
     [ValidateSet('FullControl', 'ReadPermissions', 'ChangePermissions')]
-    [String] $Permission,
+    [String] $Rights,
 
     [Parameter(Mandatory = $false)]
-    [String] $ComputerName = $env:COMPUTERNAME
-  
+    [ValidateSet('Allow', 'Deny')]
+    [String] $AccessType = 'Allow',
+
+    [Parameter(Mandatory = $false)]
+    [Switch] $Remove
+
 )
 
 
@@ -119,21 +126,31 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         [Int] $Node = $ViewTable[$View]
 
 
-        [Hashtable] $PermissionTable = @{
+        [Hashtable] $RightsTable = @{
                  
             FullControl = [Security.AccessControl.RegistryRights]::FullControl
-            ReadPermissions =[Security.AccessControl.RegistryRights]::ReadPermissions
+            ReadPermissions = [Security.AccessControl.RegistryRights]::ReadPermissions
             ChangePermissions = [Security.AccessControl.RegistryRights]::ChangePermissions
         
         }
 
-        [Int] $AccessMask = $PermissionTable[$Permission]
+        [Int] $AccessMask = $RightsTable[$Rights]
+
+
+        [Hashtable] $AccessTypeTable = @{
+                 
+            Allow = [Security.AccessControl.AccessControlType]::Allow
+            Deny = [Security.AccessControl.AccessControlType]::Deny 
+        
+        }
+
+        [Int] $AccessControlType = $AccessTypeTable[$AccessType]
 
 
         Try {
 
 
-            [Microsoft.Win32.RegistryKey] $RootKey
+            [Microsoft.Win32.RegistryKey] $RootKey = $null
 
             if (Is-LocalHost -ComputerName $ComputerName) {
 
@@ -154,22 +171,30 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit 
 
                 [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
-
-                [Int] $AccessControlType = [Security.AccessControl.AccessControlType]::Allow 
-
+    
                 [Security.AccessControl.RegistryAccessRule] $Ace = [Security.AccessControl.RegistryAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
                 [Security.AccessControl.RegistrySecurity] $Acl = $Key.GetAccessControl()
-
-                $Acl.AddAccessRule($Ace)
-
+                
                 if (!(Is-LocalHost -ComputerName $ComputerName)) {
 
                     $Acl.SetAccessRuleProtection($true, $true)
                 }
 
+                if ($Remove) {
+
+                    $Acl.RemoveAccessRule($Ace)
+
+                } else {
+
+                    $Acl.AddAccessRule($Ace)
+
+                }
+
+
                 $Key.SetAccessControl($Acl)
 
+              
             } else {
 
                 Write-Output -InputObject "Registry key not found not found"
