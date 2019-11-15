@@ -8,17 +8,21 @@ Param (
     # BUILTIN\Administrateurs, AUTORITE NT\Système, BUILTIN\Utilisateurs, <Domain>\<Group>, <Domain>\<User>, <Computer>\<User>...
     [ValidatePattern("[a-zA-Z]\\[a-zA-Z0-9]")]
     [String] $Identity,
-    
-    [Parameter(Mandatory = $false)]
-    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity')]
-    [string[]] $Permissions = $null,
 
     [Parameter(Mandatory = $false)]
     [string] $ComputerName = $env:COMPUTERNAME,
+   
+    [Parameter(ParameterSetName = "Add", Mandatory = $false)]
+    [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity')]
+    [string[]] $Rights = $null,
 
-    [Parameter(Mandatory = $false)]
-    [Switch] $Deny = $false
-  
+    [Parameter(ParameterSetName = "Add", Mandatory = $false)]
+    [ValidateSet('Allow', 'Deny')]
+    [String] $AccessType = 'Allow',
+
+    [Parameter(ParameterSetName = "Remove", Mandatory = $false)]
+    [Switch] $Remove
+
 )
 
 
@@ -140,19 +144,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
 
-        [Hashtable] $PermissionTable = @{
-        
-            Enable = 0x1
-            MethodExecute = 0x2
-            FullWrite = 0x4
-            PartialWrite = 0x8
-            ProviderWrite = 0x10
-            RemoteAccess = 0x20
-            ReadSecurity = 0x20000
-        
-        }
-        
-
         Try {
 
 
@@ -160,7 +151,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             if ($Output.ReturnValue -ne 0) {
 
-	            throw "GetSecurityDescriptor failed: $($output.ReturnValue)"
+	            throw "GetSecurityDescriptor filed: $($output.ReturnValue)"
 
             }
 
@@ -176,42 +167,76 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             [String] $Sid = $NTIdentity.Sid
 
-            [Int] $AccessMask = 0
 
-            foreach ($Permission in $Permissions) {
+            if ($Remove) {
 
-                $AccessMask += $PermissionTable[$Permission]
+                [Management.ManagementBaseObject[]] $NewDACL = @()
+                    
+                foreach ($Ace in $Acl.DACL) {
 
-            }
+                    if ($Ace.Trustee.SidString -ne $Win32Account.Sid) {
 
+                        $NewDACL += $Ace.psobject.immediateBaseObject
 
-            [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
-            $Trustee.SidString = $Sid
+                    }
 
-            [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
-            $Ace.AccessMask = $accessMask
-        
-            [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-            [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
-            [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
+                }
 
-            if ($Deny) {
-
-                $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
+                $Acl.DACL = $NewDACL.PsObject.immediateBaseObject
 
             } else {
 
-                $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
+
+                [Hashtable] $RightsTable = @{
+        
+                    Enable = 0x1
+                    MethodExecute = 0x2
+                    FullWrite = 0x4
+                    PartialWrite = 0x8
+                    ProviderWrite = 0x10
+                    RemoteAccess = 0x20
+                    ReadSecurity = 0x20000
+        
+                }
+
+                [Int] $AccessMask = 0
+
+                foreach ($Right in $Rights) {
+
+                    $AccessMask += $RightsTable[$Right]
+
+                }
+
+
+                [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
+                $Trustee.SidString = $Sid
+
+                [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
+                $Ace.AccessMask = $accessMask
+        
+                [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
+                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
+                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
+
+                if ($AccessType -eq "Allow") {
+
+                    $Ace.AceType = $ACCESS_ALLOWED_ACE_TYPE
+
+                } elseif ($AccessType -eq "Deny") {
+
+                    $Ace.AceType = $ACCESS_DENIED_ACE_TYPE
+
+                }
+
+                $Ace.Trustee = $Trustee
+                $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
+      
+                $Acl.DACL += $Ace.PsObject.immediateBaseObject
 
             }
 
-            $Ace.Trustee = $Trustee
-            $Ace.AceFlags = $CONTAINER_INHERIT_ACE_FLAG
-      
-            $Acl.DACL += $Ace.PsObject.immediateBaseObject
-
-
-            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.psobject.immediateBaseObject
+     
+            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.PsObject.ImmediateBaseObject
 
             if ($Output.ReturnValue -ne 0) {
 
@@ -227,7 +252,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         } Finally {
 
 
-            foreach ($Disposable in @($Output, $Acl, $Trustee, $Ace, $NewDACL)) {
+            foreach ($Disposable in @($Output)) {
 
                 if ($null -ne $Disposable) {
 
