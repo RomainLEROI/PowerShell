@@ -58,7 +58,7 @@ Try {
         
         if ($Group.IsMember($Computer.ADSPath)) {
 
-			$Group.Remove($Computer.ADSPath)
+            $Group.Remove($Computer.ADSPath)
 
 	} 
 
