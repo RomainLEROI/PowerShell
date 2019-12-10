@@ -60,7 +60,7 @@ Try {
 
 			$Group.Remove($Computer.ADSPath)
 
-	    } 
+	} 
 
     }  
 
