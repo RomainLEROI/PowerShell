@@ -64,8 +64,6 @@ Try {
 
     }  
 
-	Return 0
-
 } Catch {
 
     Return 30
