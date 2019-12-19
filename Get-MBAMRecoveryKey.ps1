@@ -8,10 +8,10 @@ Param (
     [String] $SqlDatabase = "MBAM Recovery and Hardware",
 
     [Parameter(ParameterSetName = "ByID", Mandatory = $true)]
-    [String] $RecoveryID = [String]::Empty,
+    [String] $RecoveryID,
 
     [Parameter(ParameterSetName = "ByName", Mandatory = $true)]
-    [String] $ComputerName = [String]::Empty
+    [String] $ComputerName
    
 )
 
