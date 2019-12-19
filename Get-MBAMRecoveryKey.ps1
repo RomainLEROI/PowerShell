@@ -23,10 +23,10 @@ Function Build-Query {
         SELECT 
 
              [RecoveryAndHardwareCore].[Keys].[LastUpdateTime]
-	        ,[RecoveryAndHardwareCore].[Domains].[DomainName]
-	        ,[RecoveryAndHardwareCore].[Machines].[Name]
-	        ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
-	        ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
+	    ,[RecoveryAndHardwareCore].[Domains].[DomainName]
+	    ,[RecoveryAndHardwareCore].[Machines].[Name]
+	    ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
+	    ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
 
         FROM [RecoveryAndHardwareCore].[Keys]
 
