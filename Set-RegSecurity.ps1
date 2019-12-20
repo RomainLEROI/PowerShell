@@ -115,7 +115,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         $Root = $HiveTable[$Hive]
 
 
-
         $ViewTable = @{
 
             Registry32 = [Microsoft.Win32.RegistryView]::Registry32
