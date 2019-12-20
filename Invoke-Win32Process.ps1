@@ -9,7 +9,7 @@ Param(
     [String] $CmdLine,
 
     [Parameter(Mandatory = $false)]
-    [Switch]$Wait
+    [Switch] $Wait
 
 )
 
@@ -25,7 +25,7 @@ Function Is-Online {
 
     Try {
      
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -80,27 +80,27 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         Try {
 
 
-            [Management.ManagementOptions] $ConnectionOptions = [Management.ConnectionOptions]::new()
+            $ConnectionOptions = New-Object -TypeName Management.ConnectionOptions
 
-            $ConnectionOptions.Authentication = [System.Management.AuthenticationLevel]::Packet
+            $ConnectionOptions.Authentication = [Management.AuthenticationLevel]::Packet
 
-            $ConnectionOptions.Impersonation = [System.Management.ImpersonationLevel]::Impersonate
+            $ConnectionOptions.Impersonation = [Management.ImpersonationLevel]::Impersonate
 
             $ConnectionOptions.EnablePrivileges = $true
 
-            [Management.ManagementScope] $ManagementScope = [Management.ManagementScope]::new()
+            $ManagementScope = New-Object -TypeName Management.ManagementScope
 
             $ManagementScope.Path = "\\$ComputerName\root\cimV2"
 
             $ManagementScope.Options = $ConnectionOptions
 
-            [Management.ObjectGetOptions] $ObjectGetOptions = [Management.ObjectGetOptions]::new()
+            $ObjectGetOptions = New-Object -TypeName Management.ObjectGetOptions
 
             $ObjectGetOptions.Timeout = [TimeSpan]::MaxValue
 
             $ObjectGetOptions.UseAmendedQualifiers = $true
 
-            [Management.ManagementClass] $ManagementClass = [Management.ManagementClass]::new()
+            $ManagementClass = New-Object -TypeName Management.ManagementClass
 
             $ManagementClass.Scope = $ManagementScope
 
@@ -108,7 +108,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             $ManagementClass.Options = $ObjectGetOptions
 
-            [Management.ManagementBaseObject] $Process = $ManagementClass.Create($CmdLine)
+            $Process = $ManagementClass.Create($CmdLine)
 
             if ($Process.returnvalue -eq 0) {
 
@@ -116,17 +116,17 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 if ($Wait) {
 
-                    [Management.WQLEventQuery] $WqlEventQuery = [Management.WQLEventQuery]::new()
+                    $WqlEventQuery = New-Object -TypeName Management.WQLEventQuery
 
-                    $WqlEventQuery.QueryString = "SELECT * From WIN32_ProcessStopTrace WHERE ProcessID=$($Process.ProcessID)"
+                    $WqlEventQuery.QueryString = "SELECT * FROM WIN32_ProcessStopTrace WHERE ProcessID=$($Process.ProcessID)"
 
-                    [Management.ManagementEventWatcher] $ManagementEventWatcher = [Management.ManagementEventWatcher]::new()
+                    $ManagementEventWatcher = New-Object -TypeName Management.ManagementEventWatcher
 
                     $ManagementEventWatcher.Scope = $ManagementScope
 
                     $ManagementEventWatcher.Query = $WqlEventQuery
 
-                    [Management.EventWatcherOptions] $Options = [Management.EventWatcherOptions]::new()
+                    $Options = New-Object -TypeName Management.EventWatcherOptions
 
                     $Options.TimeOut = [TimeSpan]"0.1:0:0"
 
@@ -134,17 +134,11 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                     $ManagementEventWatcher.Start()
 
-                    [Management.ManagementBaseObject] $ProcessStopTrace = $ManagementEventWatcher.WaitForNextEvent()
+                    $ProcessStopTrace = $ManagementEventWatcher.WaitForNextEvent()
 
-                    [Int] $ExitCode = $ProcessStopTrace.ExitStatus
-
-                    Write-Output -InputObject "Process finished with return code $ExitCode on $ComputerName"
+                    $ExitCode = $ProcessStopTrace.ExitStatus
 
                 } else {
-
-                    [Management.ManagementEventWatcher] $ManagementEventWatcher = $null
-
-                    [Management.ManagementBaseObject] $ProcessStopTrace = $null
 
                     $ExitCode = 0
 
@@ -154,19 +148,13 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             } else {
 
-                Write-Output -InputObject "Failed to create process on $ComputerName"
-
                 Return $Process.returnvalue
 
             }
 
         } Catch {
 
-
-            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
-
             Return $_.Exception.HResult
-
 
         } Finally {
 
@@ -186,12 +174,12 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
     } else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message  "$ComputerName is not online"
 
     } 
 
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
