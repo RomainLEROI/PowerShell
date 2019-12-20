@@ -102,8 +102,6 @@ if (!([Management.Automation.PSTypeName]'ProcessAs').Type) {
             CreateIgnoreSystemDefault = 0x80000000
         }
 
-
-  
         public static class ProcessAs
         {
 
@@ -133,7 +131,6 @@ if (!([Management.Automation.PSTypeName]'ProcessAs').Type) {
 
 
 $StartupInformations = New-Object -TypeName STARTUPINFO
-
 $StartupInformations.dwFlags = 1
 
 if ($Interactive) {
@@ -148,9 +145,7 @@ if ($Interactive) {
 
 $StartupInformations.cb = [Runtime.InteropServices.Marshal]::SizeOf($StartupInformations)
 
-
 $ProcessInformations = New-Object -TypeName PROCESS_INFORMATION
-
 
 if ($CmdLine.Contains(".\")) { 
 
@@ -164,15 +159,11 @@ if ($WorkingDir.StartsWith(".\")) {
 
 }
 
-
 $NTAccount = $Identity.Split('\')
-
 $UserDomain = $NTAccount[0]
-
 $UserName = $NTAccount[1]
 
 $ProcessCreated = [ProcessAs]::StartProcessAs($UserDomain, $UserName, $UserPass, [LOGON_FLAGS]::LogonNetCredentialsOnly, $CmdLine, $WorkingDir, [PROCESS_CREATION]::CreateDefaultErrorMode, [Ref] $StartupInformations, [Ref] $ProcessInformations)
-
 
 if ($ProcessCreated) {
 
@@ -188,14 +179,10 @@ if ($ProcessCreated) {
 
     } 
 
-
 } else {
-
-           
+          
     $ExitCode = 10
- 
-                    
+                   
 }
-
 
 Exit $ExitCode
