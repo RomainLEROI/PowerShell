@@ -38,7 +38,7 @@ Function Is-Online {
     Try {
 
 
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -90,53 +90,6 @@ Function Is-LocalHost {
 }
 
 
-Function Get-NTIdentity {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName,
-
-        [Parameter(Mandatory = $true)]
-        [String] $Identity
-
-    
-    )
-
-    [String[]] $Account = $Identity.Split('\')
-
-    [String] $Domain = $Account[0]
-
-    if (($Domain -eq "BUILTIN") -or ($Domain -eq "AUTORITE NT")) {
-
-        $Domain = $ComputerName
-
-    }
-
-    [String] $Name = $Account[1]
-
-    [Management.ManagementBaseObject] $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
-
-    [PSObject] $NTIdentity
-
-    if ($null -eq $Win32_Account) {
-
-        [Management.ManagementBaseObject] $Win32_Group = Get-WmiObject -Class "Win32_Group" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
-
-        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Group.Sid}
-
-    } else {
-
-        $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
-
-    }
-
-    Return $NTIdentity
-
-
-}
-
-
 
 if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
@@ -147,7 +100,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         Try {
 
 
-            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
+            $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
 
             if ($Output.ReturnValue -ne 0) {
 
@@ -155,9 +108,35 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-            [ComponentModel.Component] $Acl = $Output.Descriptor
+            $Acl = $Output.Descriptor
             
-            [PSObject] $NTIdentity = Get-NTIdentity -ComputerName $ComputerName -Identity $Identity
+            
+            $Account = $Identity.Split('\')
+
+            $Domain = $Account[0]
+
+            if (($Domain -eq "BUILTIN") -or ($Domain -eq "AUTORITE NT")) {
+
+                $Domain = $ComputerName
+
+            }
+
+            $Name = $Account[1]
+
+            $Win32_Account = Get-WmiObject -Class "Win32_Account" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
+
+            if ($null -eq $Win32_Account) {
+
+                $Win32_Group = Get-WmiObject -Class "Win32_Group" -Filter "Domain='$Domain' and Name='$Name'" -ComputerName $ComputerName
+
+                $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Group.Sid}
+
+            } else {
+
+                $NTIdentity = New-Object –TypeName PSObject -Property @{'Name'=$Name;'Domain'=$Domain;'Sid'=$Win32_Account.Sid}
+
+            }
+
 
             if ($null -eq $NTIdentity.Sid) {
 
@@ -165,12 +144,12 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-            [String] $Sid = $NTIdentity.Sid
+            $Sid = $NTIdentity.Sid
 
 
             if ($Remove) {
 
-                [Management.ManagementBaseObject[]] $NewDACL = @()
+                $NewDACL = @()
                     
                 foreach ($Ace in $Acl.DACL) {
 
@@ -187,7 +166,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             } else {
 
 
-                [Hashtable] $RightsTable = @{
+                $RightsTable = @{
         
                     Enable = 0x1
                     MethodExecute = 0x2
@@ -199,7 +178,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         
                 }
 
-                [Int] $AccessMask = 0
+                $AccessMask = 0
 
                 foreach ($Right in $Rights) {
 
@@ -208,15 +187,15 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 }
 
 
-                [Management.ManagementBaseObject] $Trustee = [Management.ManagementClass]::new("win32_Trustee").CreateInstance()
+                $Trustee = New-Object –TypeName Management.ManagementClass("win32_Trustee").CreateInstance()
                 $Trustee.SidString = $Sid
 
-                [Management.ManagementBaseObject] $Ace = [Management.ManagementClass]::new("Win32_Ace").CreateInstance()
+                $Ace = New-Object –TypeName Management.ManagementClass("Win32_Ace").CreateInstance()
                 $Ace.AccessMask = $accessMask
         
-                [Int] $ACCESS_ALLOWED_ACE_TYPE = 0x0
-                [Int] $ACCESS_DENIED_ACE_TYPE = 0x1  
-                [Int] $CONTAINER_INHERIT_ACE_FLAG = 0x2
+                $ACCESS_ALLOWED_ACE_TYPE = 0x0
+                $ACCESS_DENIED_ACE_TYPE = 0x1  
+                $CONTAINER_INHERIT_ACE_FLAG = 0x2
 
                 if ($AccessType -eq "Allow") {
 
@@ -236,7 +215,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             }
 
      
-            [ComponentModel.Component] $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.PsObject.ImmediateBaseObject
+            $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.PsObject.ImmediateBaseObject
 
             if ($Output.ReturnValue -ne 0) {
 
@@ -247,7 +226,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         } Catch {
 
-            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+            Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         } Finally {
 
@@ -267,12 +246,12 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
     }  else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message "$ComputerName is not online"
 
     }
    
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
