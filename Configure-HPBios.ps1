@@ -214,9 +214,9 @@ $BiosConfig = @{
     20 = "OS management of Embedded Security Device : Enable"
     21 = "Activate TPM On Next Boot : Enable"
     22 = "Activate Embedded Security On Next Boot : Enable"
-    23  = "Boot Mode : UEFI Native (Without CSM)"
-    24  = "SecureBoot : Enable"
-    25  = "Secure Boot : Enable"
+    23 = "Boot Mode : UEFI Native (Without CSM)"
+    24 = "SecureBoot : Enable"
+    25 = "Secure Boot : Enable"
 
 }
 
