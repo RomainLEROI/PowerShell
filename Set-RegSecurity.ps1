@@ -46,7 +46,7 @@ Function Is-Online {
     Try {
 
 
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -104,7 +104,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
 
-        [Hashtable] $HiveTable = @{
+        $HiveTable = @{
 
             LocalMachine = [Microsoft.Win32.RegistryHive]::LocalMachine
             ClassesRoot = [Microsoft.Win32.RegistryHive]::ClassesRoot
@@ -112,21 +112,21 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
 
-        [Int] $Root = $HiveTable[$Hive]
+        $Root = $HiveTable[$Hive]
 
 
 
-        [Hashtable] $ViewTable = @{
+        $ViewTable = @{
 
             Registry32 = [Microsoft.Win32.RegistryView]::Registry32
             Registry64 = [Microsoft.Win32.RegistryView]::Registry64
 
         }
 
-        [Int] $Node = $ViewTable[$View]
+        $Node = $ViewTable[$View]
 
 
-        [Hashtable] $RightsTable = @{
+        $RightsTable = @{
                  
             FullControl = [Security.AccessControl.RegistryRights]::FullControl
             ReadPermissions = [Security.AccessControl.RegistryRights]::ReadPermissions
@@ -134,23 +134,21 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         
         }
 
-        [Int] $AccessMask = $RightsTable[$Rights]
+        $AccessMask = $RightsTable[$Rights]
 
 
-        [Hashtable] $AccessTypeTable = @{
+        $AccessTypeTable = @{
                  
             Allow = [Security.AccessControl.AccessControlType]::Allow
             Deny = [Security.AccessControl.AccessControlType]::Deny 
         
         }
 
-        [Int] $AccessControlType = $AccessTypeTable[$AccessType]
+        $AccessControlType = $AccessTypeTable[$AccessType]
 
 
         Try {
 
-
-            [Microsoft.Win32.RegistryKey] $RootKey = $null
 
             if (Is-LocalHost -ComputerName $ComputerName) {
 
@@ -163,18 +161,18 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             }
 
 
-            [Microsoft.Win32.RegistryKey] $Key = $RootKey.OpenSubKey($Path, $true)
+            $Key = $RootKey.OpenSubKey($Path, $true)
 
 
             if ($null -ne $Key) {
 
-                [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit 
+                $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit 
 
-                [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+                $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
     
-                [Security.AccessControl.RegistryAccessRule] $Ace = [Security.AccessControl.RegistryAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                $Ace = New-Object TypeName Security.AccessControl.RegistryAccessRule($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-                [Security.AccessControl.RegistrySecurity] $Acl = $Key.GetAccessControl()
+                $Acl = $Key.GetAccessControl()
                 
                 if (!(Is-LocalHost -ComputerName $ComputerName)) {
 
@@ -197,14 +195,14 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
               
             } else {
 
-                Write-Output -InputObject "Registry key not found not found"
+                Write-Warning -Message "Registry key not found not found"
 
             }
 
 
         } Catch {
 
-            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+            Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         } Finally {
 
@@ -225,12 +223,12 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
  
     }  else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message "$ComputerName is not online"
 
     }
    
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
