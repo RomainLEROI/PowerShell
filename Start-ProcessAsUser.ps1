@@ -186,7 +186,6 @@ if (!([Management.Automation.PSTypeName]'ProcessAsUser').Type) {
 
 Function Is-InWinPE {
 
-
     Param()
 
     Try { 
@@ -224,7 +223,6 @@ $KnownReturn = @{
 
 }
 
-
 $SecurityAttributes = New-Object -TypeName SECURITY_ATTRIBUTES
 $SecurityAttributes.lpSecurityDescriptor = [IntPtr]::Zero
 $SecurityAttributes.bInheritHandle = $false
@@ -259,9 +257,7 @@ if ($WorkingDir.StartsWith(".\")) {
 
 }
 
-
 if ($ProcessAsUser) {
-
 
     $WinLogonId = (Get-Process -Name winlogon).Id
     
@@ -272,7 +268,6 @@ if ($ProcessAsUser) {
         Exit $KnownReturn.OpenProcessFailure
 
     } 
-
 
     $ProcessTokenHandle = [IntPtr]::Zero
 
@@ -287,8 +282,7 @@ if ($ProcessAsUser) {
         Exit $KnownReturn.OpenUserTokenFailure
 
     }
-
-    
+  
     $DuplicatedUserTokenHandle = [IntPtr]::Zero
 
     $MaximumAllowed = 0x10000000
@@ -303,30 +297,23 @@ if ($ProcessAsUser) {
 
     }
 
-
     $CreationFlag = [PROCESS_CREATION]::CreateUnicodeEnvironment + [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::CreateBreakawayFromJob + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessAsUser]::StartProcessAsUser($DuplicatedUserTokenHandle, $CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
     [Void] [ProcessAsUser]::CloseHandle($DuplicatedUserTokenHandle)
 
-
 } else {
-
 
     $CreationFlag = [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessAsUser]::StartProcess($CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
-
 }
-
 
 if ($ProcessCreated) {
 
-
     $ExitCode = $KnownReturn.Success
-
 
     if ($Wait) { 
 
@@ -338,12 +325,10 @@ if ($ProcessCreated) {
 
     } 
 
-
 } else {
           
     $ExitCode = $KnownReturn.ProcessCreationFailure
                     
 }
-
 
 Exit $ExitCode
