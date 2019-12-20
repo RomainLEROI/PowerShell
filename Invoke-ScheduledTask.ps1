@@ -152,9 +152,7 @@ if ($IsOnline) {
 
     } Catch {
 
-
         Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
-
 
     } Finally {
 
