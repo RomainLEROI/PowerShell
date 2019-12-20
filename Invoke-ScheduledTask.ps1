@@ -31,7 +31,7 @@ Function Is-Online {
 
     Try {
      
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -81,10 +81,11 @@ Function Is-LocalHost {
 
 if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
+
     Try {
 
 
-        [Hashtable] $Id = @{
+        $Id = @{
         
             System = "S-1-5-18"
             Administrators = "S-1-5-32-544"
@@ -92,21 +93,21 @@ if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $Com
 
         }
 
-        [Hashtable] $LogonType = @{
+        $LogonType = @{
 
             TaskLogonInteractiveToken = 3
             TaskLogonGroup = 4
 
         }
 
-        [Hashtable] $RunLevel = @{
+        $RunLevel = @{
 
             TaskRunLevelLUA = 0
             TaskRunLevelHighest = 1
 
         }
 
-        [Hashtable] $TaskCreation = @{
+        $TaskCreation = @{
         
             TaskCreate = 2
             TaskUpdate = 4
@@ -114,20 +115,20 @@ if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $Com
 
         }
 
-        [Hashtable] $TaskState = @{
+        $TaskState = @{
 
             Ready = 3
             Running = 4
 
         }
 
-        [__ComObject] $Service = New-Object -ComObject ("Schedule.Service")
+        $Service = New-Object -ComObject ("Schedule.Service")
 
         [Void] $Service.Connect($ComputerName)
 
-        [__ComObject] $TaskFolder = $Service.GetFolder("\")
+        $TaskFolder = $Service.GetFolder("\")
 
-        [__ComObject] $TaskDefinition = $Service.NewTask(0) 
+        $TaskDefinition = $Service.NewTask(0) 
 
         $TaskDefinition.RegistrationInfo.Description = [String]::Empty
 
@@ -161,7 +162,7 @@ if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $Com
 
         $TaskDefinition.Settings.DisallowStartIfOnBatteries = $false
 
-        [__ComObject] $Action = $TaskDefinition.Actions.Create(0)
+        $Action = $TaskDefinition.Actions.Create(0)
 
         $Action.Path = $Path
 
@@ -169,7 +170,7 @@ if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $Com
 
         [Void] $TaskFolder.RegisterTaskDefinition($TaskName, $TaskDefinition, $TaskCreation.TaskCreateOrUpdate, $null, $null, $TaskDefinition.Principal.LogonType)
 
-        [__ComObject] $Task = $TaskFolder.GetTask($TaskName)
+        $Task = $TaskFolder.GetTask($TaskName)
 
         [Void] $Task.Run($null)
 
@@ -186,22 +187,25 @@ if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $Com
 
         }
 
-
-        [Int] $ExitCode = $Task.LastTaskResult
+        $Result = New-Object –TypeName PSObject –Prop @{
+        
+            Name = $Task.Name
+            LastTaskResult = $Task.LastTaskResult
+            LastRunTime = $Task.LastRunTime
+            Xml = $Task.Xml
+        }
 
         $TaskFolder.DeleteTask($TaskName, 0)
 
-        Write-Output -InputObject "Task $TaskName finished with return code $ExitCode on $ComputerName"
-
+        Return $Result
 
     } Catch {
 
 
-        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+        Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
 
     } Finally {
-
 
         foreach ($ComObject in @($Task, $TaskDefinition, $TaskFolder, $Service)) {
 
