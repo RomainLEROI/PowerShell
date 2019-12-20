@@ -19,85 +19,33 @@ Param (
 )
 
 
+$IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
-Function Is-Online {
+if ($IsElevated) {
 
-    Param (
+    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
+    if ($IsLocalHost) {
 
-    )
+        $IsOnline = $true
 
-    Try {
+    } else {
 
-
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
-
-        Return $Result
-
-
-    } Catch {
-
-
-        Return $false
-
+        $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
     }
 
-
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
-    
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
+    if ($IsOnline) {
 
         Try {
 
-            [Management.ManagementBaseObject] $Service = Get-WmiObject -Class "Win32_Service" -Namespace "root\cimv2" -Computername $ComputerName -Filter "name='remoteregistry'" 
+            $Service = Get-WmiObject -Class "Win32_Service" -Namespace "root\cimv2" -Computername $ComputerName -Filter "name='remoteregistry'" 
 
             Write-Output -InputObject "`n$ComputerName`n"
             Write-Output -InputObject "Start state :`n-------------"
             Write-Output -InputObject $($Service | Format-List)
 
-            [Bool] $SomethingDone = $false
+            $SomethingDone = $false
 
             switch ($true) {
 
@@ -162,9 +110,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                     }
 
                 }
-
             }
-
 
             if ($SomethingDone) {
 
@@ -175,22 +121,20 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-
         } Catch {
 
-            Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+            Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         }
 
-
     }  else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message "$ComputerName is not online"
 
     }
 
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
