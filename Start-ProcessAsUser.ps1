@@ -15,7 +15,7 @@ Param (
 
 if (!([Management.Automation.PSTypeName]'ProcessAsUser').Type) {
 
-Add-Type -TypeDefinition @"
+    Add-Type -TypeDefinition @"
 
         using System;
         using System.Runtime.InteropServices;
@@ -191,7 +191,7 @@ Function Is-InWinPE {
 
     Try { 
 
-        [__ComObject] $TSEnvironment = New-Object -ComObject Microsoft.SMS.TSEnvironment -ErrorAction SilentlyContinue
+        $TSEnvironment = New-Object -ComObject Microsoft.SMS.TSEnvironment -ErrorAction SilentlyContinue
 
         Return [Convert]::ToBoolean($TSEnvironment.Value("_SMSTSinWinPE"))
 
@@ -213,7 +213,7 @@ Function Is-InWinPE {
 }
 
 
-[HashTable] $KnownReturn = @{
+$KnownReturn = @{
 
     Success = 0x0
     OpenProcessFailure = 0x3E8
@@ -225,24 +225,21 @@ Function Is-InWinPE {
 }
 
 
-[SECURITY_ATTRIBUTES] $SecurityAttributes = [SECURITY_ATTRIBUTES]::New()
+$SecurityAttributes = New-Object -TypeName SECURITY_ATTRIBUTES
 $SecurityAttributes.lpSecurityDescriptor = [IntPtr]::Zero
 $SecurityAttributes.bInheritHandle = $false
 $SecurityAttributes.Length = [Runtime.InteropServices.Marshal]::SizeOf($SecurityAttributes)
 
-
-[STARTUPINFO] $StartupInformations = [STARTUPINFO]::New()
+$StartupInformations = New-Object -TypeName STARTUPINFO
 $StartupInformations.dwFlags = 0
 $StartupInformations.lpDesktop = [String]::Empty
 $StartupInformations.cb = [Runtime.InteropServices.Marshal]::SizeOf($StartupInformations)
 
+$ProcessInformations = New-Object -TypeName PROCESS_INFORMATION
 
-[PROCESS_INFORMATION] $ProcessInformations = [PROCESS_INFORMATION]::New()
+$CurrentSID = ([Security.Principal.NTAccount]::New([Security.Principal.WindowsIdentity]::GetCurrent().Name)).Translate([Security.Principal.SecurityIdentifier]).Value
 
-
-[String] $CurrentSID = ([Security.Principal.NTAccount]::New([Security.Principal.WindowsIdentity]::GetCurrent().Name)).Translate([Security.Principal.SecurityIdentifier]).Value
-
-[Bool] $ProcessAsUser = $true
+$ProcessAsUser = $true
 
 if ((Is-InWinPE) -or ($CurrentSID -ne "S-1-5-18")) {
 
@@ -266,9 +263,9 @@ if ($WorkingDir.StartsWith(".\")) {
 if ($ProcessAsUser) {
 
 
-    [Int] $WinLogonId = (Get-Process -Name winlogon).Id
+    $WinLogonId = (Get-Process -Name winlogon).Id
     
-    [IntPtr] $ProcessHandle = [ProcessAsUser]::OpenProcess([PROCESS_ACCESS]::All, $false, $WinLogonId) 
+    $ProcessHandle = [ProcessAsUser]::OpenProcess([PROCESS_ACCESS]::All, $false, $WinLogonId) 
 
     if ($ProcessHandle -eq [IntPtr]::Zero) { 
 
@@ -277,9 +274,9 @@ if ($ProcessAsUser) {
     } 
 
 
-    [IntPtr] $ProcessTokenHandle = [IntPtr]::Zero
+    $ProcessTokenHandle = [IntPtr]::Zero
 
-    [Int] $TokenAccess = [TOKEN_ACCESS]::TokenDuplicate + [TOKEN_ACCESS]::TokenQuery + [TOKEN_ACCESS]::TokenImpersonate
+    $TokenAccess = [TOKEN_ACCESS]::TokenDuplicate + [TOKEN_ACCESS]::TokenQuery + [TOKEN_ACCESS]::TokenImpersonate
 
     [Void] [ProcessAsUser]::OpenProcessToken($ProcessHandle, $TokenAccess, [Ref] $ProcessTokenHandle)
 
@@ -292,9 +289,9 @@ if ($ProcessAsUser) {
     }
 
     
-    [IntPtr] $DuplicatedUserTokenHandle = [IntPtr]::Zero
+    $DuplicatedUserTokenHandle = [IntPtr]::Zero
 
-    [Int] $MaximumAllowed = 0x10000000
+    $MaximumAllowed = 0x10000000
 
     [Void] [ProcessAsUser]::DuplicateTokenEx($ProcessTokenHandle, $MaximumAllowed, [Ref] $SecurityAttributes, [SECURITY_IMPERSONATION_LEVEL]::SecurityImpersonation, [TOKEN_TYPE]::TokenImpersonation, [Ref] $DuplicatedUserTokenHandle)
 
@@ -307,7 +304,7 @@ if ($ProcessAsUser) {
     }
 
 
-    [Int] $CreationFlag = [PROCESS_CREATION]::CreateUnicodeEnvironment + [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::CreateBreakawayFromJob + [PROCESS_CREATION]::HighPriorityClass
+    $CreationFlag = [PROCESS_CREATION]::CreateUnicodeEnvironment + [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::CreateBreakawayFromJob + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessAsUser]::StartProcessAsUser($DuplicatedUserTokenHandle, $CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
@@ -317,7 +314,7 @@ if ($ProcessAsUser) {
 } else {
 
 
-    [Int] $CreationFlag = [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::HighPriorityClass
+    $CreationFlag = [PROCESS_CREATION]::CreateNewConsole + [PROCESS_CREATION]::HighPriorityClass
 
     $ProcessCreated = [ProcessAsUser]::StartProcess($CmdLine, [Ref] $SecurityAttributes, [Ref] $SecurityAttributes, $CreationFlag, $WorkingDir, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
@@ -328,12 +325,12 @@ if ($ProcessAsUser) {
 if ($ProcessCreated) {
 
 
-    [Int] $ExitCode = $KnownReturn.Success
+    $ExitCode = $KnownReturn.Success
 
 
     if ($Wait) { 
 
-        [Int] $WaitInfinite = 0xFFFFFFFF
+        $WaitInfinite = 0xFFFFFFFF
 
         [Void] [ProcessAsUser]::WaitForSingleObject($ProcessInformations.hProcess, $WaitInfinite)
 
