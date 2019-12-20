@@ -90,55 +90,58 @@ if (!([Management.Automation.PSTypeName]'LSAutil').Type) {
 }
 
 
-[LSA_OBJECT_ATTRIBUTES] $objectAttributes = [LSA_OBJECT_ATTRIBUTES]::new()
-$objectAttributes.Length = 0
-$objectAttributes.RootDirectory = [IntPtr]::Zero
-$objectAttributes.Attributes = 0
-$objectAttributes.SecurityDescriptor = [IntPtr]::Zero
-$objectAttributes.SecurityQualityOfService = [IntPtr]::Zero
+$ObjectAttributes = New-Object -TypeName LSA_OBJECT_ATTRIBUTES
+$ObjectAttributes.Length = 0
+$ObjectAttributes.RootDirectory = [IntPtr]::Zero
+$ObjectAttributes.Attributes = 0
+$ObjectAttributes.SecurityDescriptor = [IntPtr]::Zero
+$ObjectAttributes.SecurityQualityOfService = [IntPtr]::Zero
 
-[LSA_UNICODE_STRING] $localsystem = [LSA_UNICODE_STRING]::new()
-$localsystem.Buffer = [IntPtr]::Zero
-$localsystem.Length = 0
-$localsystem.MaximumLength = 0
+$Localsystem = New-Object -TypeName LSA_UNICODE_STRING
+$Localsystem.Buffer = [IntPtr]::Zero
+$Localsystem.Length = 0
+$Localsystem.MaximumLength = 0
 
-[LSA_UNICODE_STRING] $secretName = [LSA_UNICODE_STRING]::new()
-$secretName.Buffer = [Runtime.InteropServices.Marshal]::StringToHGlobalUni("DefaultPassword")
-$secretName.Length = ("DefaultPassword").Length * [Text.UnicodeEncoding]::CharSize
-$secretName.MaximumLength = (("DefaultPassword").Length + 1) * [Text.UnicodeEncoding]::CharSize
+$SecretName = New-Object -TypeName LSA_UNICODE_STRING
+$SecretName.Buffer = [Runtime.InteropServices.Marshal]::StringToHGlobalUni("DefaultPassword")
+$SecretName.Length = ("DefaultPassword").Length * [Text.UnicodeEncoding]::CharSize
+$SecretName.MaximumLength = (("DefaultPassword").Length + 1) * [Text.UnicodeEncoding]::CharSize
 
-[LSA_UNICODE_STRING] $lusSecretData = [LSA_UNICODE_STRING]::new()
+$LusSecretData = New-Object -TypeName LSA_UNICODE_STRING
 
 if ($Add) {
 
-    $lusSecretData.Buffer = [Runtime.InteropServices.Marshal]::StringToHGlobalUni($DefaultPassword)
-    $lusSecretData.Length = $DefaultPassword.Length * [Text.UnicodeEncoding]::CharSize
-    $lusSecretData.MaximumLength = ($DefaultPassword.Length + 1) * [Text.UnicodeEncoding]::CharSize
+    $LusSecretData.Buffer = [Runtime.InteropServices.Marshal]::StringToHGlobalUni($DefaultPassword)
+    $LusSecretData.Length = $DefaultPassword.Length * [Text.UnicodeEncoding]::CharSize
+    $LusSecretData.MaximumLength = ($DefaultPassword.Length + 1) * [Text.UnicodeEncoding]::CharSize
 
 } elseif ($Remove) {
 
-    $lusSecretData.Buffer = [IntPtr]::Zero;
-    $lusSecretData.Length = 0;
-    $lusSecretData.MaximumLength = 0;
+    $LusSecretData.Buffer = [IntPtr]::Zero
+    $LusSecretData.Length = 0
+    $LusSecretData.MaximumLength = 0
 
 }
 
-[IntPtr] $LsaPolicyHandle = [IntPtr]::Zero
+$LsaPolicyHandle = [IntPtr]::Zero
 
-[Int] $result = [LSAutil]::LsaOpenPolicy([Ref] $localsystem, [Ref] $objectAttributes, [LSA_AccessPolicy]::POLICY_CREATE_SECRET, [Ref] $LsaPolicyHandle);
+$Result = [LSAutil]::LsaOpenPolicy([Ref] $Localsystem, [Ref] $ObjectAttributes, [LSA_AccessPolicy]::POLICY_CREATE_SECRET, [Ref] $LsaPolicyHandle)
+
+$Return = [LSAutil]::LsaNtStatusToWinError($Result)
 
 
-if ([LSAutil]::LsaNtStatusToWinError($result) -eq 0) {
+if ($Return -eq 0) {
 
+    $Result = [LSAutil]::LsaStorePrivateData($LsaPolicyHandle, [Ref] $SecretName, [Ref] $LusSecretData)
 
-    $result = [LSAutil]::LsaStorePrivateData($LsaPolicyHandle, [Ref] $secretName, [Ref] $lusSecretData);
+    $Return = [LSAutil]::LsaNtStatusToWinError($Result)
 
-    if ([LSAutil]::LsaNtStatusToWinError($result) -eq 0) {
+    if ($Return -eq 0) {
 
 
         Try {
 
-            [Microsoft.Win32.RegistryKey] $Key = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
+            $Key = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
 
             $Key = $Key.OpenSubKey("SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", $true)
 
@@ -159,22 +162,23 @@ if ([LSAutil]::LsaNtStatusToWinError($result) -eq 0) {
 
         } Catch {
 
-            Return 30
+            Return $_.Exception.HResult
 
         }
   
+    } else {
+
+        Return $Return
+
     }
 
     $result = [LSAutil]::LsaClose($LsaPolicyHandle)
 
-    if ([LSAutil]::LsaNtStatusToWinError($result) -ne 0) {
+    $Return = [LSAutil]::LsaNtStatusToWinError($Result)
 
-        Return 20
-
-    }
-
+    Return $Return
 
 } else {
 
-    Return 10
+    Return $Return
 }
