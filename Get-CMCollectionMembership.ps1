@@ -1,6 +1,6 @@
 Param (
 
-    [Parameter(ParameterSetName = "ByID", Mandatory = $true)]
+    [Parameter(Mandatory = $true)]
     [String] $CollectionID
 
 )
