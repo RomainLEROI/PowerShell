@@ -111,7 +111,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             Try {
 
 
-                [Hashtable] $RightsTable = @{
+                $RightsTable = @{
                  
                     FullControl = [Security.AccessControl.FileSystemRights]::FullControl
                     Modify = [Security.AccessControl.FileSystemRights]::Modify
@@ -122,7 +122,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 }
 
      
-                [Int] $AccessMask = 0
+                $AccessMask = 0
 
                 foreach ($Right in $Rights) {
 
@@ -130,25 +130,25 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
-                [Int] $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
+                $PropagationFlag = [Security.AccessControl.PropagationFlags]::None 
 
-                [Hashtable] $AccessTypeTable = @{
+                $AccessTypeTable = @{
                  
                     Allow = [Security.AccessControl.AccessControlType]::Allow
                     Deny = [Security.AccessControl.AccessControlType]::Deny 
         
                 }
 
-                [Int] $AccessControlType = $AccessTypeTable[$AccessType]
+                $AccessControlType = $AccessTypeTable[$AccessType]
 
 
                 if ((Get-Item -Path $Path).PSIsContainer) {
 
-                    [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
+                    $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::ContainerInherit + [Security.AccessControl.InheritanceFlags]::ObjectInherit
          
-                    [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                    $Ace = New-Object -TypeName Security.AccessControl.FileSystemAccessRule($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-                    [Security.AccessControl.DirectorySecurity] $Acl = [IO.Directory]::GetAccessControl($path)
+                    $Acl = [IO.Directory]::GetAccessControl($path)
 
                     if ($Remove) {
 
@@ -165,11 +165,11 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 } else {
 
-                    [Int] $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
+                    $InheritanceFlag = [Security.AccessControl.InheritanceFlags]::None
          
-                    [Security.AccessControl.FileSystemAccessRule] $Ace = [Security.AccessControl.FileSystemAccessRule]::new($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
+                    $Ace = New-Object -TypeName Security.AccessControl.FileSystemAccessRule($Identity, $AccessMask, $InheritanceFlag, $PropagationFlag, $AccessControlType)
 
-                    [Security.AccessControl.FileSecurity] $Acl = [IO.File]::GetAccessControl($path)
+                    $Acl = [IO.File]::GetAccessControl($path)
 
                     if ($Remove) {
 
@@ -188,25 +188,25 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             } Catch {
 
-                Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+                Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
             }
 
 
         } else {
 
-            Write-Output -InputObject "Path not found not found"
+            Write-Warning -Message "Path not found not found"
 
         }
 
     }  else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message "$ComputerName is not online"
 
     }
    
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
