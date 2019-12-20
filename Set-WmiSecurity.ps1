@@ -26,79 +26,25 @@ Param (
 )
 
 
-Function Is-Online {
+$IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
-    Param (
+if ($IsElevated) {
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
+    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-    )
+    if ($IsLocalHost) {
 
-    Try {
+        $IsOnline = $true
 
+    } else {
 
-        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
-
-        Return $Result
-
-
-    } Catch {
-
-
-        Return $false
-
+        $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
     }
-
-
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
     
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-
-
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
+    if ($IsOnline) {
 
         Try {
-
 
             $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name GetSecurityDescriptor
 
@@ -165,7 +111,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             } else {
 
-
                 $RightsTable = @{
         
                     Enable = 0x1
@@ -185,7 +130,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                     $AccessMask += $RightsTable[$Right]
 
                 }
-
 
                 $Trustee = New-Object –TypeName Management.ManagementClass("win32_Trustee").CreateInstance()
                 $Trustee.SidString = $Sid
@@ -214,7 +158,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-     
             $Output = Invoke-WmiMethod -Path "__systemsecurity=@" -Namespace $Namespace -ComputerName $ComputerName -Name "SetSecurityDescriptor" -ArgumentList $acl.PsObject.ImmediateBaseObject
 
             if ($Output.ReturnValue -ne 0) {
@@ -223,13 +166,11 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-
         } Catch {
 
             Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         } Finally {
-
 
             foreach ($Disposable in @($Output)) {
 
@@ -242,7 +183,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
             }
 
         }
-
 
     }  else {
 
