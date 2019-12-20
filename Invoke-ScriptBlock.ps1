@@ -139,7 +139,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
                 } Catch {
 
 
-                    Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+                    Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
 
                 } Finally {
