@@ -14,7 +14,7 @@ Param (
 
 $ConnectionString = "Data Source=$SqlServer;Initial Catalog=MBAM Recovery and Hardware;Integrated Security=True"
 
-$Connection = New-Object System.Data.SqlClient.SqlConnection
+$Connection = New-Object -TypeName Data.SqlClient.SqlConnection
 
 $Connection.ConnectionString = $ConnectionString
     
@@ -66,11 +66,11 @@ if ($IsAbleToConnect) {
 
     Try {
 
-        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand($Query, $Connection)
+        $SqlCommand = New-Object -TypeName Data.SqlClient.SqlCommand($Query, $Connection)
                    
-        $DataSet = New-Object System.Data.DataSet
+        $DataSet = New-Object -TypeName Data.DataSet
 
-        $DataAdapter = New-Object System.Data.SqlClient.SqlDataAdapter($SqlCommand)
+        $DataAdapter = New-Object -TypeName Data.SqlClient.SqlDataAdapter($SqlCommand)
 
         $SqlResult = @{
 
