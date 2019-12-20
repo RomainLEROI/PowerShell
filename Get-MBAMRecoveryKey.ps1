@@ -4,9 +4,6 @@ Param (
     [Parameter(Mandatory = $true)]
     [String] $SqlServer,
 
-    [Parameter(Mandatory = $false)]
-    [String] $SqlDatabase = "MBAM Recovery and Hardware",
-
     [Parameter(ParameterSetName = "ByID", Mandatory = $true)]
     [String] $RecoveryID,
 
@@ -15,16 +12,34 @@ Param (
    
 )
 
+$ConnectionString = "Data Source=$SqlServer;Initial Catalog=MBAM Recovery and Hardware;Integrated Security=True"
 
-Function Build-Query {
+$Connection = New-Object System.Data.SqlClient.SqlConnection
 
-    [String] $Query = @"
+$Connection.ConnectionString = $ConnectionString
+    
+Try {
+
+    $Connection.Open()
+
+    $IsAbleToConnect = ($Connection.State -eq "Open")
+
+} Catch {
+
+    $IsAbleToConnect =  $false
+
+}
+
+
+if ($IsAbleToConnect) {
+
+    $Query = @"
 
         SELECT [RecoveryAndHardwareCore].[Keys].[LastUpdateTime]
-	      ,[RecoveryAndHardwareCore].[Domains].[DomainName]
-	      ,[RecoveryAndHardwareCore].[Machines].[Name]
-	      ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
-	      ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
+	          ,[RecoveryAndHardwareCore].[Domains].[DomainName]
+	          ,[RecoveryAndHardwareCore].[Machines].[Name]
+	          ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
+	          ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
 
         FROM [RecoveryAndHardwareCore].[Keys]
 
@@ -39,58 +54,41 @@ Function Build-Query {
 
 "@
 
-    if (($ComputerName -ne [String]::Empty) -and ($RecoveryID -eq [String]::Empty)) {
+    if (![String]::IsNullOrEmpty($ComputerName)) {
       
       $Query = "$Query WHERE [RecoveryAndHardwareCore].[Machines].[Name] = '{0}'" -f $ComputerName
 
-    } elseif (($ComputerName -eq [String]::Empty) -and ($RecoveryID -ne [String]::Empty)) {
+    } elseif (![String]::IsNullOrEmpty($RecoveryID)) {
       
       $Query = "$Query WHERE [RecoveryAndHardwareCore].[Keys].[RecoveryKeyId] LIKE '{0}%'" -f $RecoveryID
 
-    } elseif (($ComputerName -ne [String]::Empty) -and ($RecoveryID -ne [String]::Empty)) {
-      
-      $Query = "$Query WHERE [RecoveryAndHardwareCore].[Machines].[Name] = '{0}' AND [RecoveryAndHardwareCore].[Keys].[RecoveryKeyId] LIKE '{1}%'" -f $ComputerName, $RecoveryID
-
     }
-
-    Return $Query
-
-}
-
-
-Function Execute-SqlQuery {
 
     Try {
 
-        [Data.SqlClient.SqlCommand] $SqlCommand = New-Object System.Data.SqlClient.SqlCommand($Query, $Connection)
+        $SqlCommand = New-Object System.Data.SqlClient.SqlCommand($Query, $Connection)
                    
-        [Data.DataSet] $DataSet = New-Object System.Data.DataSet
+        $DataSet = New-Object System.Data.DataSet
 
-        [Data.SqlClient.SqlDataAdapter] $DataAdapter = New-Object System.Data.SqlClient.SqlDataAdapter($SqlCommand)
+        $DataAdapter = New-Object System.Data.SqlClient.SqlDataAdapter($SqlCommand)
 
-        [Int] $RecordCount = $DataAdapter.Fill($DataSet)
-
-        [HashTable] $SqlResult = @{
+        $SqlResult = @{
 
             DataSet = $DataSet
-            RecordCount = $RecordCount
+            RecordCount = $DataAdapter.Fill($DataSet)
             Exception = [String]::Empty
 
         }
 
-        Return $SqlResult
-
     } Catch {
 
-        [HashTable] $SqlResult = @{
+        $SqlResult = @{
 
             DataSet = $null
             RecordCount = 0
             Exception = $_.Exception.Message
 
         }
-
-        Return $SqlResult
 
     } Finally {
 
@@ -102,63 +100,9 @@ Function Execute-SqlQuery {
 
     }
 
-}
-
-
-Function Check-SqlConnection {
-
-
-    Try {
-
-        $Connection.Open()
-
-        [Bool] $IsAbleToConnect = ($Connection.State -eq "Open")
-
-        if ($IsAbleToConnect) { 
-        
-            $Connection.Close() 
-            
-        }
- 
-        Return $IsAbleToConnect
-
-
-    } Catch {
-
-        Return $false
-
-    }
-
-}
-
-
-Function Create-SqlConnection {
-
-
-    [String] $ConnectionString = "Data Source=$SqlServer;Initial Catalog=$SqlDatabase;Integrated Security=True"
-
-    [Data.SqlClient.SqlConnection] $Connection = New-Object System.Data.SqlClient.SqlConnection
-
-    $Connection.ConnectionString = $ConnectionString
-
-    Return $Connection
-
-}
-
-
-[Data.SqlClient.SqlConnection] $Connection = Create-SqlConnection
+    if ($SqlResult.RecordCount -gt 0) { 
     
-[Bool] $IsAbleToConnect =  Check-SqlConnection
-
-if ($IsAbleToConnect) {
-
-    [String] $Query = Build-Query
-
-    [HashTable] $Result = Execute-SqlQuery
-
-    if ($Result.RecordCount -gt 0) { 
-    
-        $Result.DataSet.Tables[0].Rows
+        $SqlResult.DataSet.Tables[0].Rows
 
     } else {
 
@@ -166,9 +110,9 @@ if ($IsAbleToConnect) {
 
     }
 
-    if (![String]::IsNullOrEmpty($Result.Exception)) {
+    if (![String]::IsNullOrEmpty($SqlResult.Exception)) {
 
-        Write-Error -Message "[!] $($Result.Exception)"
+        Write-Error -Message "[!] $($SqlResult.Exception)"
 
     }
 
