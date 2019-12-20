@@ -41,11 +41,8 @@ $ManagementObjectCollection | ForEach-Object {
     $Row = $DataTable.NewRow()
 
     $Row.ClientType = [Convert]::ToInt32($_.ClientType)
-          
+    $Row.ResourceID = $_.ResourceID    
     $Row.Name = $_.Name
-
-    $Row.ResourceID = $_.ResourceID
-
     $Row.IsDirect = [Convert]::ToBoolean($_.IsDirect)
 
     $DataTable.Rows.Add($Row)
