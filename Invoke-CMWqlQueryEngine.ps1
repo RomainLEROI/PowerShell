@@ -26,7 +26,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint()))
 
             foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
             
-                   [Void] $DataTable.Columns.Add("$Property", [String])
+                   [Void] $DataTable.Columns.Add($Property, [String])
                    
             }
 
