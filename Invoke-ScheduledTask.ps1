@@ -20,11 +20,19 @@ Param (
 )
 
 
-$IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
-
 $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-if ($IsLocalHost -or $IsOnline) {
+if ($IsLocalHost) {
+
+    $IsOnline = $true
+
+} else {
+
+    $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
+
+}
+
+if ($IsOnline) {
 
     Try {
 
