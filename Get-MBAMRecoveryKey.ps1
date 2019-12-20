@@ -36,10 +36,10 @@ if ($IsAbleToConnect) {
     $Query = @"
 
         SELECT [RecoveryAndHardwareCore].[Keys].[LastUpdateTime]
-	          ,[RecoveryAndHardwareCore].[Domains].[DomainName]
-	          ,[RecoveryAndHardwareCore].[Machines].[Name]
-	          ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
-	          ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
+	      ,[RecoveryAndHardwareCore].[Domains].[DomainName]
+	      ,[RecoveryAndHardwareCore].[Machines].[Name]
+	      ,[RecoveryAndHardwareCore].[Keys].[RecoveryKeyId]
+	      ,[RecoveryAndHardwareCore].[Keys].[RecoveryKey]
 
         FROM [RecoveryAndHardwareCore].[Keys]
 
@@ -102,7 +102,7 @@ if ($IsAbleToConnect) {
 
     if ($SqlResult.RecordCount -gt 0) { 
     
-        $SqlResult.DataSet.Tables[0].Rows
+        Return $SqlResult.DataSet.Tables[0].Rows
 
     } else {
 
