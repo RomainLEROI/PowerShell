@@ -10,73 +10,23 @@ Param (
 )
 
 
-Function Is-Online {
+$IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
-    Param (
+if ($IsElevated) {
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-   
-    )
+    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-    Try {
+    if ($IsLocalHost) {
 
-   
-        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $IsOnline = $true
 
-        Return $Result
+    } else {
 
-
-    } Catch {
-
-
-        Return $false
-
+        $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
     }
 
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
-    
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-
-
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
+    if ($IsOnline) {
 
         Try {
 
