@@ -8,9 +8,9 @@ Param (
 )
 
 
-[Data.DataTable] $DataTable = [Data.DataTable]::new("Data")
+$DataTable = New-Object Data.DataTable("Data")
 
-[HashTable] $ValidHeaders = @{
+$ValidHeaders = @{
 
     "Device Name" = "DeviceName"
     "Email Address" = "EmailAddress"
@@ -25,11 +25,11 @@ Param (
 }
 
 
-[Int] $Headers = ($ValidHeaders.GetEnumerator() | Measure-Object).Count
+$Headers = ($ValidHeaders.GetEnumerator() | Measure-Object).Count
 
-[String[]] $ExportContent = (Get-Content -Path $CsvPath)
+$ExportContent = (Get-Content -Path $CsvPath)
 
-[Int] $Done = 0
+$Done = 0
 
 foreach ($Item in $ValidHeaders.GetEnumerator()) {
 
@@ -37,7 +37,7 @@ foreach ($Item in $ValidHeaders.GetEnumerator()) {
 
     $Done++
 
-    [Decimal] $PercentDone = [Math]::Round((($Done / $Headers) * 100), 1, [MidpointRounding]::AwayFromZero)
+    $PercentDone = [Math]::Round((($Done / $Headers) * 100), 1, [MidpointRounding]::AwayFromZero)
 
     Write-Progress -Activity ("Formating headers" + "." * $Point) -Status "$PercentDone% done:" -PercentComplete $PercentDone;
 
@@ -68,13 +68,13 @@ foreach ($NoteProperty in ($ExportContent | Get-Member -MemberType NoteProperty)
 }
 
 
-[Int] $Items = ($ExportContent | Measure-Object).Count
+$Items = ($ExportContent | Measure-Object).Count
 
 $Done = 0
 
 foreach ($Obj in $ExportContent) {
 
-    [Data.DataRow] $Row = $DataTable.NewRow()
+    $Row = $DataTable.NewRow()
 
     foreach ($Column in $DataTable.columns) {
 
@@ -98,7 +98,7 @@ foreach ($Obj in $ExportContent) {
     
     $Done++
 
-    [Decimal] $PercentDone = [Math]::Round((($Done / $Items) * 100), 1, [MidpointRounding]::AwayFromZero)
+    $PercentDone = [Math]::Round((($Done / $Items) * 100), 1, [MidpointRounding]::AwayFromZero)
 
     Write-Progress -Activity ("Building DataTable" + "." * $Point) -Status "$PercentDone% done:" -PercentComplete $PercentDone;
 
