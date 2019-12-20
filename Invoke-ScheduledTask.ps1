@@ -20,70 +20,13 @@ Param (
 )
 
 
-Function Is-Online {
+$IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
-    Param(
+$IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-   
-    )
+if ($IsLocalHost -or $IsOnline) {
 
     Try {
-     
-        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
-
-        Return $Result
-
-    } Catch {
-
-        Return $false
-
-    }
-
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
-    
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
-
-    Try {
-
 
         $Id = @{
         
