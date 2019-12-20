@@ -25,91 +25,33 @@ Param (
 
 )
 
+$IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
+if ($IsElevated) {
 
-Function Is-Online {
+    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-    Param (
+    if ($IsLocalHost) {
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
+        $IsOnline = $true
 
-    )
+    } else {
 
-    Try {
-
-
-        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
-
-        Return $Result
-
-
-    } Catch {
-
-
-        Return $false
-
+        $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
     }
 
+    if ($IsOnline) {
 
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
-    
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-
-
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
-
-
-        if (!(Is-LocalHost -ComputerName $ComputerName) -and ($Path -match "^[a-zA-Z]:\\")) {
+        if (!$IsLocalHost -and ($Path -match "^[a-zA-Z]:\\")) {
 
             $Path = "\\$ComputerName\$($Path.Replace(":", "$"))"
 
         }
 
-
         if (Test-Path -Path $Path) {
-
-            
+        
             Try {
-
 
                 $RightsTable = @{
                  
@@ -185,13 +127,11 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
-
             } Catch {
 
                 Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
             }
-
 
         } else {
 
