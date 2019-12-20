@@ -18,12 +18,9 @@ Function Get-BiosConfig($Setting) {
 
 Function Apply-BiosConfig($BiosConfig) {
 
-
     Write-CMLog -Log $LogFilePath -Value "[+] Applying bios configuration" -Severity 1
 
-
     foreach ($Item in $BiosConfig.GetEnumerator() | Sort Key) {
-
 
         $ItemIndex = $Item.Key
 
@@ -32,7 +29,6 @@ Function Apply-BiosConfig($BiosConfig) {
         $DesiredValue = ($Item.Value).Split(":")[1].TrimStart()
 
         $Config = Get-BiosConfig -Setting $Setting
-
 
         if ($null -ne $Config) {
 
@@ -49,7 +45,6 @@ Function Apply-BiosConfig($BiosConfig) {
                     $PossibleValues += , $Item.TrimStart()
 
                 }
-
 
                 if ($PossibleValues.Contains($DesiredValue)) {
 
@@ -71,7 +66,6 @@ Function Apply-BiosConfig($BiosConfig) {
 
                 }
 
-
             } else {
 
                 Write-CMLog -Log $LogFilePath -Value "Desired value [$DesiredValue] is already set" -Severity 1
@@ -79,7 +73,6 @@ Function Apply-BiosConfig($BiosConfig) {
                 $BiosConfig.Remove($ItemIndex)
 
             }
-
 
         } else {
 
@@ -90,7 +83,6 @@ Function Apply-BiosConfig($BiosConfig) {
         }
 
     }
-
 
     if ($BiosConfig.Count -eq 0) {
 
@@ -117,9 +109,7 @@ Function Apply-BiosConfig($BiosConfig) {
 
 Function Set-BiosValue($Setting, $Value) {
 
-
     Try {
-
 
         Write-CMLog -Log $LogFilePath -Value "Trying to configure $Setting without password" -Severity 1
 
@@ -152,23 +142,21 @@ Function Set-BiosValue($Setting, $Value) {
 
 Function Write-CMLog($LogFilePath, $Value, $Severity) {
 
-
     $Time = -join @((Get-Date -Format "HH:mm:ss.fff"), "+", (Get-WmiObject -Class Win32_TimeZone | Select-Object -ExpandProperty Bias))
 
     $Date = (Get-Date -Format "MM-dd-yyyy")
 
-	$Context = $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
+    $Context = $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
 
     $LogText = '<![LOG[{0}]LOG]!><time="{1}" date="{2}" component="{3}" context="{4}" type="{5}" thread="{6}" file="">' -f
                $Value, $Time, $Date, [System.IO.Path]::GetFileName($LogFilePath), $Context, $Severity, $PID
 	
-	Add-Content -Value $LogText -LiteralPath $LogFilePath -ErrorAction Stop
+    Add-Content -Value $LogText -LiteralPath $LogFilePath -ErrorAction Stop
 
 }
 
 
 Function Get-HPBios() {
-
 
     Try { 
 
@@ -186,7 +174,6 @@ Function Get-HPBios() {
 
 
 Function Get-TSEnvironment() {
-
 
     Try { 
 
@@ -258,7 +245,6 @@ if ($null -eq $Bios) {
     [Environment]::Exit(10)
 
 }
-
 
 $AppliedConfig = Apply-BiosConfig -BiosConfig $BiosConfig
 
