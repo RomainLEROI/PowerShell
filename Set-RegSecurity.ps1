@@ -34,75 +34,23 @@ Param (
 )
 
 
-Function Is-Online {
+$IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
-    Param (
+if ($IsElevated) {
 
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
+    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
 
-    )
+    if ($IsLocalHost) {
 
-    Try {
+        $IsOnline = $true
 
+    } else {
 
-        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
-
-        Return $Result
-
-
-    } Catch {
-
-
-        Return $false
-
+        $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
 
     }
-
-
-}
-
-
-Function Is-LocalHost {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-
     
-    )
-
-    switch ($true) {
-
-        ($ComputerName -eq $env:COMPUTERNAME) {
-
-            Return $true
-
-        } ($ComputerName -eq 'localhost') {
-
-            Return $true
-
-        } ($ComputerName -eq '.') {
-
-            Return $true
-
-        } Default {
-
-            Return $false
-
-        }
-
-    }
-
-}
-
-
-if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-
-
-    if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
-
+    if ($IsOnline) {
 
         $HiveTable = @{
 
@@ -114,7 +62,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         $Root = $HiveTable[$Hive]
 
-
         $ViewTable = @{
 
             Registry32 = [Microsoft.Win32.RegistryView]::Registry32
@@ -123,7 +70,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         }
 
         $Node = $ViewTable[$View]
-
 
         $RightsTable = @{
                  
@@ -134,7 +80,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
         }
 
         $AccessMask = $RightsTable[$Rights]
-
 
         $AccessTypeTable = @{
                  
@@ -148,8 +93,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         Try {
 
-
-            if (Is-LocalHost -ComputerName $ComputerName) {
+            if ($IsLocalHost) {
 
                 $RootKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($Root, $Node)
 
@@ -159,9 +103,7 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
             }
 
-
             $Key = $RootKey.OpenSubKey($Path, $true)
-
 
             if ($null -ne $Key) {
 
@@ -188,23 +130,19 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
                 }
 
-
                 $Key.SetAccessControl($Acl)
-
-              
+             
             } else {
 
                 Write-Warning -Message "Registry key not found not found"
 
             }
 
-
         } Catch {
 
             Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
         } Finally {
-
 
             foreach ($Disposable in @($Key, $RootKey)) {
 
@@ -219,7 +157,6 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
         }
 
- 
     }  else {
 
         Write-Warning -Message "$ComputerName is not online"
