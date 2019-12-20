@@ -8,7 +8,7 @@ Param (
 )
 
 
-$DataTable = New-Object Data.DataTable("Data")
+$DataTable = New-Object -TypeName Data.DataTable("Data")
 
 $ValidHeaders = @{
 
