@@ -10,139 +10,6 @@ Param (
 )
 
 
-Function Invoke-ScriptBlock {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [IO.Pipes.NamedPipeClientStream] $PipeClient,
-
-        [Parameter(Mandatory = $true)] 
-        [ScriptBlock] $ScriptBlock
-   
-    )
-
-    Try {
-
-
-        [IO.StreamReader] $PipeReader = [IO.StreamReader]::new($PipeClient)
-
-        [IO.StreamWriter] $PipeWriter = [IO.StreamWriter]::new($PipeClient)
-
-        $PipeWriter.AutoFlush = $true
-
-        $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())))
-           
-        Return [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))
-
-
-    } Catch {
-
-
-        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
-
-        Return $null
-
-
-    } Finally {
-
-
-        foreach ($Disposable in @($PipeWriter, $PipeReader, $PipeClient)) {
-
-            if ($null -ne $Disposable) {
-
-                [Void] $Disposable.Dispose()
-
-            }
-
-        }
-
-    }
-
-}
-
-
-Function Create-PipeClient {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-   
-    )
-
-    Try {
-
-
-        [IO.Pipes.NamedPipeClientStream] $PipeClient = [IO.Pipes.NamedPipeClientStream]::new($ComputerName, 'ScriptBlock', [IO.Pipes.PipeDirection]::InOut)
-
-        $PipeClient.Connect()
-
-        Return $PipeClient
-
-
-    } Catch {
-
-
-        Write-Output "$($_.Exception.GetType())`n$($_.Exception.Message)"
-        
-        Return $null
-
-        
-    }
-
-}
-
-
-Function Create-PipeServer {
-
-    Param (
-
-        [Parameter(Mandatory = $true)]
-        [String] $ComputerName
-   
-    )
-
-    Try {
-
-
-        [ScriptBlock] $ScriptBlock = {$PipeServer = [IO.Pipes.NamedPipeServerStream]::new('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose(); $NewPowerShell.Runspace.Close(); $NewPowerShell.Runspace.Dispose(); $NewRunspace.Close(); $NewRunspace.Dispose(); $NewPowerShell.Dispose()}
-
-        [String] $Command = "&{ $($ScriptBlock.ToString()) }"
-
-        [String] $CmdLine = "PowerShell.exe -command $Command"
-
-        [Management.ManagementBaseObject] $Process = Invoke-WmiMethod -ComputerName $ComputerName -Class Win32_Process -Name Create -ArgumentList $CmdLine
-        
-        Return $Process
-
-
-    } Catch {
-
-
-        Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
-
-        Return $null
-
-        
-    } Finally {
-
-
-        foreach ($Disposable in @($ManagementClass, $Process)) {
-
-            if ($null -ne $Disposable) {
-   
-                [Void] $Disposable.Dispose() 
-                    
-            }
-
-        }
-
-    }
-
-}
-
-
 Function Is-Online {
 
     Param (
@@ -155,7 +22,7 @@ Function Is-Online {
     Try {
 
    
-        [Bool] $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
+        $Result = Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue
 
         Return $Result
 
@@ -211,44 +78,99 @@ if (([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdent
 
     if ((Is-LocalHost -ComputerName $ComputerName) -or (Is-Online -ComputerName $ComputerName)) {
 
-
-        if ($null -ne (Create-PipeServer -ComputerName $ComputerName)) {
-
-
-            [IO.Pipes.NamedPipeClientStream] $PipeClient = Create-PipeClient -ComputerName $ComputerName
+        Try {
 
 
-            if (($null -ne $PipeClient) -and ($PipeClient.IsConnected)) {  
-           
+            $ServerBlock = {$PipeServer = New-Object -TypeName IO.Pipes.NamedPipeServerStream('ScriptBlock', [IO.Pipes.PipeDirection]::InOut); $PipeServer.WaitForConnection(); $PipeReader = [IO.StreamReader]::new($PipeServer); $PipeWriter = [IO.StreamWriter]::new($PipeServer); $PipeWriter.AutoFlush = $true; $Builder = [Text.StringBuilder]::new(); [Void]$Builder.AppendLine('Try {'); [Void]$Builder.AppendLine([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine()))); [Void]$Builder.AppendLine('} Catch { $_.Exception.Message }'); $NewPowerShell = [PowerShell]::Create().AddScript([Scriptblock]::Create($Builder.ToString())); $NewRunspace = [Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace(); $NewRunspace.ApartmentState = [Threading.ApartmentState]::STA; $NewPowerShell.Runspace = $NewRunspace; $NewPowerShell.Runspace.Open(); $Invoke = $NewPowerShell.BeginInvoke(); $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes([Management.Automation.PSSerializer]::Serialize($NewPowerShell.EndInvoke($Invoke))))); $PipeWriter.Dispose(); $PipeReader.Dispose(); $PipeServer.Close(); $PipeServer.Dispose(); $NewPowerShell.Runspace.Close(); $NewPowerShell.Runspace.Dispose(); $NewRunspace.Close(); $NewRunspace.Dispose(); $NewPowerShell.Dispose()}
 
-                $Return = [Management.Automation.PSSerializer]::Deserialize((Invoke-ScriptBlock -PipeClient $PipeClient -ScriptBlock $ScriptBlock))
+            $Command = "&{ $($ServerBlock.ToString()) }"
 
-                [Void] $PipeClient.Dispose()
+            $CmdLine = "PowerShell.exe -command $Command"
 
-                Return $Return
+            $PipeServer = Invoke-WmiMethod -ComputerName $ComputerName -Class Win32_Process -Name Create -ArgumentList $CmdLine
+        
+        } Catch {
 
 
-            } else {
+            Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
 
-                Return $null
+            $PipeServer = $null
 
+        
+        }
+
+
+        if ($null -ne $PipeServer) {
+
+            Try {
+
+
+                $PipeClient = New-Object -TypeName IO.Pipes.NamedPipeClientStream($ComputerName, 'ScriptBlock', [IO.Pipes.PipeDirection]::InOut)
+
+                $PipeClient.Connect()
+
+            } Catch {
+
+
+                Write-Error -Message "$($_.Exception.GetType())`n$($_.Exception.Message)"
+        
+                $PipeClient = $null
+
+        
             }
 
 
-        } else {
+            if (($null -ne $PipeClient) -and ($PipeClient.IsConnected)) {  
 
-            Return $null
+                Try {
+
+                    $PipeReader = New-Object -TypeName IO.StreamReader($PipeClient)
+
+                    $PipeWriter = New-Object -TypeName IO.StreamWriter($PipeClient)
+
+                    $PipeWriter.AutoFlush = $true
+
+                    $PipeWriter.WriteLine([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($ScriptBlock.ToString())))
+           
+                    $Result =  [Management.Automation.PSSerializer]::Deserialize([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String($PipeReader.ReadLine())))
+
+                    Return $Result
+
+                } Catch {
+
+
+                    Write-Output -InputObject "$($_.Exception.GetType())`n$($_.Exception.Message)"
+
+
+                } Finally {
+
+
+                    foreach ($Disposable in @($PipeWriter, $PipeReader, $PipeClient)) {
+
+                        if ($null -ne $Disposable) {
+
+                            [Void] $Disposable.Dispose()
+
+                        }
+
+                    }
+
+                }
+
+                
+
+            }
 
         }
 
     }  else {
 
-        Write-Output -InputObject "$ComputerName is not online"
+        Write-Warning -Message "$ComputerName is not online"
 
     }
     
 } else {
 
-    Write-Output -InputObject "The requested operation requires elevation"
+    Write-Warning -Message "The requested operation requires elevation"
 
 }
