@@ -132,7 +132,7 @@ if (!([Management.Automation.PSTypeName]'ProcessAs').Type) {
 
 
 
-[STARTUPINFO] $StartupInformations = [STARTUPINFO]::New()
+$StartupInformations = New-Object -TypeName STARTUPINFO
 
 $StartupInformations.dwFlags = 1
 
@@ -149,7 +149,7 @@ if ($Interactive) {
 $StartupInformations.cb = [Runtime.InteropServices.Marshal]::SizeOf($StartupInformations)
 
 
-[PROCESS_INFORMATION] $ProcessInformations = [PROCESS_INFORMATION]::New()
+$ProcessInformations = New-Object -TypeName PROCESS_INFORMATION
 
 
 if ($CmdLine.Contains(".\")) { 
@@ -165,28 +165,26 @@ if ($WorkingDir.StartsWith(".\")) {
 }
 
 
-[String[]] $NTAccount = $Identity.Split('\')
+$NTAccount = $Identity.Split('\')
 
-[String] $UserDomain = $NTAccount[0]
+$UserDomain = $NTAccount[0]
 
-[String] $UserName = $NTAccount[1]
+$UserName = $NTAccount[1]
 
 $ProcessCreated = [ProcessAs]::StartProcessAs($UserDomain, $UserName, $UserPass, [LOGON_FLAGS]::LogonNetCredentialsOnly, $CmdLine, $WorkingDir, [PROCESS_CREATION]::CreateDefaultErrorMode, [Ref] $StartupInformations, [Ref] $ProcessInformations)
 
 
 if ($ProcessCreated) {
 
-
-    [Int] $ExitCode = $KnownReturn.Success
-
+    $ExitCode = $KnownReturn.Success
 
     if ($Wait) { 
 
-        [Int] $WaitInfinite = 0xFFFFFFFF
+        $WaitInfinite = 0xFFFFFFFF
 
         [Void] [ProcessAs]::WaitForSingleObject($ProcessInformations.hProcess, $WaitInfinite)
 
-        [Void] [ProcessAs]::GetExitCodeProcess($ProcessInformations.hProcess, [Ref]$ExitCode)
+        [Void] [ProcessAs]::GetExitCodeProcess($ProcessInformations.hProcess, [Ref] $ExitCode)
 
     } 
 
@@ -194,7 +192,7 @@ if ($ProcessCreated) {
 } else {
 
            
-    $ExitCode = 5000
+    $ExitCode = 10
  
                     
 }
