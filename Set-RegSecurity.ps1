@@ -38,8 +38,8 @@ $IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.Wi
 
 if ($IsElevated) {
 
-    $IsLocalHost = if (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName))) { Write-Output $true } else { Write-Output $false }
-
+    $IsLocalHost = (($ComputerName -eq $env:COMPUTERNAME) -or ($ComputerName -eq 'localhost') -or ($ComputerName -eq '.') -or (((Get-NetIPAddress).IPAddress).Contains($ComputerName)))
+    
     if ($IsLocalHost) {
 
         $IsOnline = $true
