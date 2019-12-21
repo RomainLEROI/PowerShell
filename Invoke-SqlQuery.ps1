@@ -33,16 +33,6 @@ Try {
 
 if ($IsAbleToConnect) {
 
-    if (![String]::IsNullOrEmpty($ComputerName)) {
-      
-      $Query = "$Query WHERE [RecoveryAndHardwareCore].[Machines].[Name] = '{0}'" -f $ComputerName
-
-    } elseif (![String]::IsNullOrEmpty($RecoveryID)) {
-      
-      $Query = "$Query WHERE [RecoveryAndHardwareCore].[Keys].[RecoveryKeyId] LIKE '{0}%'" -f $RecoveryID
-
-    }
-
     Try {
 
         $SqlCommand = New-Object -TypeName Data.SqlClient.SqlCommand($Query, $Connection)
