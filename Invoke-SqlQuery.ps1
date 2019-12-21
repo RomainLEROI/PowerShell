@@ -79,8 +79,6 @@ if ($IsAbleToConnect) {
 
     }
 
-
-
     if (![String]::IsNullOrEmpty($SqlResult.Exception)) {
 
         Write-Error -Message "[!] $($SqlResult.Exception)"
