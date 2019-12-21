@@ -3,6 +3,9 @@ Param (
 
     [Parameter(Mandatory = $false)]
     [string] $ComputerName = $env:COMPUTERNAME,
+
+    [Parameter(Mandatory = $true)]
+    [string] $ServiceName,
    
     [Parameter(ParameterSetName = "Enable", Mandatory = $true)]
     [Switch] $Enable,
@@ -39,85 +42,66 @@ if ($IsElevated) {
 
         Try {
 
-            $Service = Get-WmiObject -Class "Win32_Service" -Namespace "root\cimv2" -Computername $ComputerName -Filter "name='remoteregistry'" 
+            $Service = Get-WmiObject -Class "Win32_Service" -Namespace "root\cimv2" -Computername $ComputerName -Filter "name='$ServiceName'" 
 
-            Write-Output -InputObject "`n$ComputerName`n"
-            Write-Output -InputObject "Start state :`n-------------"
-            Write-Output -InputObject $($Service | Format-List)
+            if ($null -ne $Service) {
 
-            $SomethingDone = $false
+                switch ($true) {
 
-            switch ($true) {
+                    $Enable {
 
-                $Enable {
+                        if ($Service.StartMode -eq "Disabled") {
 
-                    if ($Service.StartMode -eq "Disabled") {
+                            if (($Service.ChangeStartMode("Automatic")).returnvalue -ne 0) { 
 
-                        if (($Service.ChangeStartMode("Automatic")).returnvalue -eq 0) { 
+                                Throw "Failed to enable service"
+                            }
 
-                            $SomethingDone = $true
-
-                        } else {
-
-                            Throw "Failed to change service StartMode"
                         }
 
-                    }
+                    } $Start {
 
-                } $Start {
+                        if ($Service.State -eq "Stopped") {
 
-                    if ($Service.State -eq "Stopped") {
+                            if (($Service.StartService()).returnvalue -ne 0) { 
 
-                        if (($Service.StartService()).returnvalue -eq 0) { 
+                                Throw "Failed to start service"
+                            }
 
-                            $SomethingDone = $true
-
-                        } else {
-
-                            Throw "Failed to start service"
                         }
 
-                    }
+                    } $Stop {
 
-                } $Stop {
+                        if ($Service.State -eq "Running") {
 
-                    if ($Service.State -eq "Running") {
+                            if (($Service.StopService()).returnvalue -ne 0) { 
 
-                        if (($Service.StopService()).returnvalue -eq 0) { 
+                                Throw "Failed to change stop service"
+                            }
 
-                            $SomethingDone = $true
-
-                        } else {
-
-                            Throw "Failed to change service StartMode"
                         }
 
-                    }
-
-                } $Disabled {
+                    } $Disabled {
                                 
-                    if ($Service.StartMode -ne "Disabled") {
+                        if ($Service.StartMode -ne "Disabled") {
 
-                        if (($Service.ChangeStartMode("Disabled")).returnvalue -eq 0) { 
+                            if (($Service.ChangeStartMode("Disabled")).returnvalue -ne 0) { 
                             
-                            $SomethingDone = $true
+                                Throw "Failed to disable service"
+                            }
 
-                        } else {
-
-                            Throw "Failed to change service StartMode"
                         }
 
                     }
-
                 }
-            }
 
-            if ($SomethingDone) {
+                $Service = Get-WmiObject -Class Win32_Service -Namespace root\cimv2 -Computername $ComputerName -Filter "name='$ServiceName'" 
 
-                $Service = Get-WmiObject -Class Win32_Service -Namespace root\cimv2 -Computername $ComputerName -Filter "name='remoteregistry'" 
+                Return $Service
 
-                Write-Output -InputObject "Current state :`n---------------"
-                Write-Output -InputObject $($Service | Format-List)
+            } else {
+
+                Write-Warning -Message "No $ServiceName service was found on $ComputerName"
 
             }
 
