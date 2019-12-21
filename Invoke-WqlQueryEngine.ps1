@@ -16,48 +16,90 @@ $CmClient = New-Object -ComObject "Microsoft.SMS.Client"
 if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) 
 { 
 
-    $Object = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query).GetEnumerator() | Select-Object -Index 0
+    Try {
 
-    $DataTable = New-Object -TypeName Data.DataTable "WqlQueryResult" 
+        $Object = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query).GetEnumerator() | Select-Object -Index 0
 
-    if ($null -ne $Object) {
+        $DataTable = New-Object -TypeName Data.DataTable "WqlQueryResult" 
 
-        foreach ($WmiClass in $Object.PropertyNames) {
+        if ($null -ne $Object) {
 
-            foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
+            foreach ($WmiClass in $Object.PropertyNames) {
+
+                foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
             
-                   [Void] $DataTable.Columns.Add($Property, [String])
+                       [Void] $DataTable.Columns.Add($Property, [String])
                    
+                }
+
             }
+
+        }
+
+        $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
+
+        foreach ($QueryResult in $QueryResults.GetEnumerator()) {  
+
+            $Row = $DataTable.NewRow()
+
+            foreach ($WmiClass in $QueryResult.PropertyNames) {
+
+                foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
+
+                    $Row.$Property = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
+
+                }
+
+            }
+
+            $DataTable.Rows.Add($Row)
+
+        } 
+
+        $WqlResult = @{
+
+            DataTable = $DataSet
+            RecordCount = $DataTable.Rows.Count
+            Exception = [String]::Empty
+
+        }
+
+    } Catch {
+
+        $WqlResult = @{
+
+            DataTable = $null
+            RecordCount = 0
+            Exception = $_.Exception.Message
+
+        }
+
+    } Finally {
+
+        $WqlConnectionManager.Close()
+
+    }
+
+    if (![String]::IsNullOrEmpty($WqlResult.Exception)) {
+
+        Write-Error -Message "[!] $($WqlResult.Exception)"
+
+    } else {
+
+        if ($WqlResult.RecordCount -gt 0) { 
+    
+            Return $SqlResult
+
+        } else {
+
+            Write-Warning -Message "[!] No match"
 
         }
 
     }
 
-    $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
-
-    foreach ($QueryResult in $QueryResults.GetEnumerator()) {  
-
-        $Row = $DataTable.NewRow()
-
-        foreach ($WmiClass in $QueryResult.PropertyNames) {
-
-            foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
-
-                $Row.$Property = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
-
-            }
-
-        }
-
-        $DataTable.Rows.Add($Row)
-
-    } 
-
-    Return $DataTable
-
 } else {
 
-    Return $null
+    Write-Error -Message "[!] Unable to access current management point"
 
 }
