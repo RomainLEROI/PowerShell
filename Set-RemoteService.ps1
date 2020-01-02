@@ -76,7 +76,7 @@ if ($IsElevated) {
 
                             if (($Service.StopService()).returnvalue -ne 0) { 
 
-                                Throw "Failed to change stop service"
+                                Throw "Failed to stop service"
                             }
 
                         }
