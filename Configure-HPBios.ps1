@@ -118,7 +118,7 @@ Try {
 
 if ($null -eq $Bios) {
 
-    [Environment]::Exit(10)
+    Exit(10)
 
 }
 
@@ -240,6 +240,6 @@ if ($BiosConfig.Count -eq 0) {
 
     }
     
-    [Environment]::Exit(20)
+    Exit(20)
 
 }
