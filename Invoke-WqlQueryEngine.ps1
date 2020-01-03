@@ -25,7 +25,6 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
             if ($Object.OverridingObjectClass -eq "__GENERIC") {
 
-
                 foreach ($WmiClass in $Object.PropertyNames) {
 
                     foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
