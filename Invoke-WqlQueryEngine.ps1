@@ -88,7 +88,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint()))
 
         if ($WqlResult.RecordCount -gt 0) { 
     
-            Return $SqlResult
+            Return $WqlResult
 
         } else {
 
