@@ -69,11 +69,11 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
                     $Row = $DataTable.NewRow()
 
-	                foreach ($Item in ($QueryResult.PropertyList).GetEnumerator()) {
+	            foreach ($Item in ($QueryResult.PropertyList).GetEnumerator()) {
 	
                         $Row.($Item.Key) = $Item.Value
 	
-	                }
+	            }
 
                     $DataTable.Rows.Add($Row)
 
