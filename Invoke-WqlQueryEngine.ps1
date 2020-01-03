@@ -29,7 +29,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
                     foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
             
-                           [Void] $DataTable.Columns.Add($Property, [String])
+                        [Void] $DataTable.Columns.Add("$WmiClass.$Property", [String])
                    
                     }
 
@@ -45,7 +45,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
                         foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
 
-                            $Row.$Property = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
+                            $Row."$WmiClass.$Property" = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
 
                         }
 
@@ -140,3 +140,4 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
     Write-Error -Message "[!] Unable to access current management point"
 
 }
+
