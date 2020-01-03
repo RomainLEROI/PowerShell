@@ -22,25 +22,8 @@ $ExportContent = Import-Csv -Path $CsvPath
 
 foreach ($NoteProperty in ($ExportContent | Get-Member -MemberType NoteProperty)) {
 
-    $TestValue = ($ExportContent[1]).($NoteProperty.Name)
-
-    if ($null -ne ($TestValue -as [Int])) {
-
-        [Void] $DataTable.columns.add($NoteProperty.Name, [Int])
-
-    } elseif ($null -ne ($TestValue -as [DateTime])) {
-
-        [Void] $DataTable.columns.add($NoteProperty.Name, [DateTime])
-
-    } elseif ($null -ne ($TestValue -as [Bool])) {
-
-        [Void] $DataTable.columns.add($NoteProperty.Name, [Bool])
-
-    } elseif ($null -ne ($TestValue -as [String])) {
-
-        [Void] $DataTable.columns.add($NoteProperty.Name, [String])
-
-    } 
+    # TO DO : Cast types
+    [Void] $DataTable.columns.add($NoteProperty.Name, [String])
 
 }
 
