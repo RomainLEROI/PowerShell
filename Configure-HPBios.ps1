@@ -164,14 +164,16 @@ foreach ($Item in $BiosConfig.GetEnumerator() | Sort Key) {
 
                 Try {
 
-                    Write-CMLog -Log $LogFilePath -Value "Trying to configure $Setting without password" -Severity 1
-
                     if (![String]::IsNullOrEmpty($Password)) {
-
+		    
+			Write-CMLog -Log $LogFilePath -Value "Trying to configure $Setting with password" -Severity 1
+			
                         $ReturnCode = $($Bios.SetBIOSSetting($Setting, $DesiredValue, "<utf-16/>" + $Password)).return
 
                     } else {
 
+			Write-CMLog -Log $LogFilePath -Value "Trying to configure $Setting without password" -Severity 1
+			
                         $ReturnCode = $($Bios.SetBIOSSetting($Setting, $DesiredValue, "<utf-16/>")).return
 
                     }
