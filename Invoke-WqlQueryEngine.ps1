@@ -58,7 +58,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint()))
 
         $WqlResult = @{
 
-            DataTable = $DataSet
+            DataTable = $DataTable
             RecordCount = $DataTable.Rows.Count
             Exception = [String]::Empty
 
