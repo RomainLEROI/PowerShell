@@ -20,47 +20,86 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint()))
 
         $Object = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query).GetEnumerator() | Select-Object -Index 0
 
-        $DataTable = New-Object -TypeName Data.DataTable "WqlQueryResult" 
-
         if ($null -ne $Object) {
 
-            foreach ($WmiClass in $Object.PropertyNames) {
+            $DataTable = New-Object -TypeName Data.DataTable "WqlQueryResult" 
 
-                foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
+            if ($Object.OverridingObjectClass -eq "__GENERIC") {
+
+
+                foreach ($WmiClass in $Object.PropertyNames) {
+
+                    foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
             
-                       [Void] $DataTable.Columns.Add($Property, [String])
+                           [Void] $DataTable.Columns.Add($Property, [String])
+                   
+                    }
+
+                }
+
+                $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
+
+                foreach ($QueryResult in $QueryResults.GetEnumerator()) {  
+
+                    $Row = $DataTable.NewRow()
+
+                    foreach ($WmiClass in $QueryResult.PropertyNames) {
+
+                        foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
+
+                            $Row.$Property = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
+
+                        }
+
+                    }
+
+                    $DataTable.Rows.Add($Row)
+
+                } 
+
+            } else {
+
+                foreach ($Property in $Object.PropertyNames) {
+            
+                    [Void] $DataTable.Columns.Add($Property, [String])
                    
                 }
 
-            }
+                $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
 
-        }
+                foreach ($QueryResult in $QueryResults.GetEnumerator()) {
 
-        $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
+                    $Row = $DataTable.NewRow()
 
-        foreach ($QueryResult in $QueryResults.GetEnumerator()) {  
+	                foreach ($Item in ($QueryResult.PropertyList).GetEnumerator()) {
+	
+                        $Row.($Item.Key) = $Item.Value
+	
+	                }
 
-            $Row = $DataTable.NewRow()
-
-            foreach ($WmiClass in $QueryResult.PropertyNames) {
-
-                foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
-
-                    $Row.$Property = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
+                    $DataTable.Rows.Add($Row)
 
                 }
+    
+            }
+     
+            $WqlResult = @{
+
+                DataTable = $DataTable
+                RecordCount = $DataTable.Rows.Count
+                Exception = [String]::Empty
 
             }
 
-            $DataTable.Rows.Add($Row)
+        } else {
 
-        } 
+            $WqlResult = @{
 
-        $WqlResult = @{
+                DataTable = $null
+                RecordCount = 0
+                Exception = "Failed to create columns"
 
-            DataTable = $DataTable
-            RecordCount = $DataTable.Rows.Count
-            Exception = [String]::Empty
+            }
 
         }
 
@@ -70,7 +109,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint()))
 
             DataTable = $null
             RecordCount = 0
-            Exception = $_.Exception.Message
+            Exception = [String]::Empty
 
         }
 
