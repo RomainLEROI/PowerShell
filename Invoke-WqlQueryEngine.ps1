@@ -13,8 +13,7 @@ Param (
 $WqlConnectionManager = New-Object -TypeName Microsoft.ConfigurationManagement.ManagementProvider.WqlQueryEngine.WqlConnectionManager 
 $CmClient = New-Object -ComObject "Microsoft.SMS.Client"
 
-if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) 
-{ 
+if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) { 
 
     Try {
 
