@@ -37,15 +37,15 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
                 $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
 
-                foreach ($QueryResult in $QueryResults.GetEnumerator()) {  
+                $QueryResults.GetEnumerator() | ForEach-Object {  
 
                     $Row = $DataTable.NewRow()
 
-                    foreach ($WmiClass in $QueryResult.PropertyNames) {
+                    foreach ($WmiClass in $_.PropertyNames) {
 
                         foreach ($Property in $Object.Generics[$WmiClass].PropertyNames) {
 
-                            $Row."$WmiClass.$Property" = ($QueryResult.get_Item($WmiClass).ObjectValue).$Property
+                            $Row."$WmiClass.$Property" = ($_.get_Item($WmiClass).ObjectValue).$Property
 
                         }
 
@@ -65,15 +65,15 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
                 $QueryResults = $WqlConnectionManager.QueryProcessor.ExecuteQuery($Query) 
 
-                foreach ($QueryResult in $QueryResults.GetEnumerator()) {
+                $QueryResults.GetEnumerator() | ForEach-Object { 
 
                     $Row = $DataTable.NewRow()
 
-	            foreach ($Item in ($QueryResult.PropertyList).GetEnumerator()) {
+                    foreach ($Item in ($_.PropertyList).GetEnumerator()) {
 	
                         $Row.($Item.Key) = $Item.Value
 	
-	            }
+                    }
 
                     $DataTable.Rows.Add($Row)
 
@@ -140,4 +140,3 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
     Write-Error -Message "[!] Unable to access current management point"
 
 }
-
