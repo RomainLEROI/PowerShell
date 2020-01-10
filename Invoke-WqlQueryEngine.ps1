@@ -107,7 +107,7 @@ if ($WqlConnectionManager.Connect($CmClient.GetCurrentManagementPoint())) {
 
             DataTable = $null
             RecordCount = 0
-            Exception = [String]::Empty
+            Exception = $_.Exception.Message
 
         }
 
