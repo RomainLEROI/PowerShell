@@ -9,16 +9,15 @@ Param (
    
     [Parameter(ParameterSetName = "Enable", Mandatory = $true)]
     [Switch] $Enable,
+    
+    [Parameter(ParameterSetName = "Disable", Mandatory = $false)]
+    [Switch] $Disable,
 
     [Parameter(ParameterSetName = "Enable", Mandatory = $false)]
     [Switch] $Start,
 
     [Parameter(ParameterSetName = "Disable", Mandatory = $true)]
-    [Switch] $Stop,
-
-    [Parameter(ParameterSetName = "Disable", Mandatory = $false)]
-    [Switch] $Disable
-
+    [Switch] $Stop
 )
 
 
