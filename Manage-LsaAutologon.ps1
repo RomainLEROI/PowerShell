@@ -144,16 +144,28 @@ if ($Return -eq 0) {
             $Key = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
 
             $Key = $Key.OpenSubKey("SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", $true)
+ 
+            if ($Add) {
+          
+                $Key.SetValue("DefaultUserName", $DefaultUserName)
 
-            $Key.SetValue("DefaultUserName", $DefaultUserName)
+                $Key.SetValue("DefaultDomainName", $DefaultDomainName)
 
-            $Key.SetValue("DefaultDomainName", $DefaultDomainName)
+                $Key.SetValue("AutoAdminLogon", 1)
 
-            $Key.SetValue("AutoAdminLogon", 1)
+                if ($null -ne $Key.GetValue("AutoLogonCount")) {
 
-            if ($null -ne $Key.GetValue("AutoLogonCount")) {
+                    $Key.DeleteValue("AutoLogonCount")
 
-                $Key.DeleteValue("AutoLogonCount")
+                }
+
+            } elseif ($Remove) {
+
+                $Key.DeleteValue("DefaultUserName")
+
+                $Key.DeleteValue("DefaultDomainName")
+
+                $Key.DeleteValue("AutoAdminLogon")
 
             }
 
