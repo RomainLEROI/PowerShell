@@ -11,6 +11,9 @@ Param (
 
     [Parameter(Mandatory = $false)]
     [string] $ComputerName = $env:COMPUTERNAME,
+    
+    [Parameter(ParameterSetName = "Remove", Mandatory = $true)]
+    [Switch] $Remove,
    
     [Parameter(ParameterSetName = "Add", Mandatory = $true)]
     [ValidateSet('Enable', 'MethodExecute', 'FullWrite', 'PartialWrite', 'ProviderWrite', 'RemoteAccess', 'ReadSecurity')]
@@ -18,11 +21,7 @@ Param (
 
     [Parameter(ParameterSetName = "Add", Mandatory = $false)]
     [ValidateSet('Allow', 'Deny')]
-    [String] $AccessType = 'Allow',
-
-    [Parameter(ParameterSetName = "Remove", Mandatory = $true)]
-    [Switch] $Remove
-
+    [String] $AccessType = 'Allow'
 )
 
 
