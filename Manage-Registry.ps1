@@ -455,6 +455,15 @@ Begin {
         Return $Result   
     }
 
+    if ($Hidden) {
+
+        $KeyPath = "`0`0$Path"
+
+    } else {
+
+        $KeyPath = "$Path"
+
+    }
 
     $IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
@@ -463,37 +472,24 @@ Begin {
     if ($IsLocalHost) {
 
         $IsOnline = $true
+        
+        $Root = [Microsoft.Win32.RegistryKey]::OpenBaseKey($Hive, $View)
 
     } else {
 
         $IsOnline = Try { Write-Output (Test-Connection -ComputerName $Computername -Count 1 -Quiet -ErrorAction SilentlyContinue) } Catch { Write-Output $false }
-
+        
+        if ($IsOnline) {
+        
+            $Root = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey($Hive, $ComputerName,$View)  
+            
+        }
+        
     }
 
 } Process {
-
-    
+   
     if ($IsOnline) {
-
-        if ($Hidden) {
-
-            $KeyPath = "`0`0$Path"
-
-        } else {
-
-            $KeyPath = "$Path"
-
-        }
-
-        if ($IsLocalHost) {
-
-            $Root = [Microsoft.Win32.RegistryKey]::OpenBaseKey($Hive, $View)
-
-        } else {
-
-            $Root = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey($Hive, $ComputerName,$View)
-
-        }
 
         if ($CheckKeyExists) {
   
@@ -546,6 +542,8 @@ Begin {
     } else {
 
         Write-Warning -Message "$ComputerName is not online"
+        
+        $Result = $null
 
     }
 
