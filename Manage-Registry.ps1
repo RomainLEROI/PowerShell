@@ -496,10 +496,6 @@ Begin {
 
         }
 
-
-        #$Key = $Root.OpenSubKey($KeyPath, $true)
-
-
         if ($CheckKeyExists) {
   
           $Result = Check-KeyExists -Root $Root -KeyPath $KeyPath 
