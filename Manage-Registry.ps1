@@ -381,7 +381,6 @@ Begin {
 
         )
 
-
         $Key = $Root.OpenSubKey($KeyPath, $true)
 
         Try {
