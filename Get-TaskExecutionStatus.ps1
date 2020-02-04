@@ -126,9 +126,7 @@ Function Get-TaskExecutionStatus {
 
                 if ($SqlResult.RecordCount -gt 0) { 
 
-
                     $SqlResult.DataSet.Tables[0] | Out-GridView -Title $ComputerName
-
 
                 } else {
 
