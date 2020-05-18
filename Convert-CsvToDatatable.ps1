@@ -12,17 +12,10 @@ Param (
 
 $DataTable = New-Object -TypeName Data.DataTable("Data")
 
-$ExportContent = Get-Content -Path $CsvPath
-
-$ExportContent[0] -replace "[^\p{L}\p{Nd}$Delimiter]+", [String]::Empty
-
-$ExportContent | Out-File -FilePath $CsvPath
-
-$ExportContent = Import-Csv -Path $CsvPath
+$ExportContent = Import-Csv -Path $CsvPath -Delimiter $Delimiter
 
 foreach ($NoteProperty in ($ExportContent | Get-Member -MemberType NoteProperty)) {
 
-    # TO DO : Cast types
     [Void] $DataTable.columns.add($NoteProperty.Name, [String])
 
 }
@@ -47,7 +40,7 @@ $ExportContent | ForEach-Object {
 
     $PercentDone = [Math]::Round((($Done / $Items) * 100), 1, [MidpointRounding]::AwayFromZero)
 
-    Write-Progress -Activity ("Building DataTable" + "." * $Point) -Status "$PercentDone% done:" -PercentComplete $PercentDone;
+    Write-Progress -Activity ("Building DataTable") -Status "$PercentDone% done:" -PercentComplete $PercentDone;
 
 }
 
