@@ -30,7 +30,7 @@ if ($null -ne $Explorer) {
 
         $Sessions = qwinsta | Select-Object -Skip 1 | ForEach-Object {
 
-            [PSCustomObject]@{
+            @{
 
                 SessionName = $_.Substring(1,18).Trim()
                 ID = $_.Substring(41,5).Trim()
