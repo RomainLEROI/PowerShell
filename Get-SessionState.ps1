@@ -12,8 +12,6 @@ $Result = @()
                    
 if ($null -ne $Explorer) {
 
-    write-host test
-
     if (($Explorer | Measure-Object).Count -gt 0) {
 
         $Sessions = @()
