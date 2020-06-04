@@ -1,72 +1,54 @@
+Param (
 
-if (!([Management.Automation.PSTypeName]'SessionInfo').Type) {
+    [Parameter(Mandatory = $false)]
+    [String] $ComputerName = $env:COMPUTERNAME
 
-    Add-Type -TypeDefinition @"
+)
 
-        using System;
-        using System.Runtime.InteropServices;
 
-        public static class SessionInfo
-        {
-            [DllImport("kernel32.dll")]
-            public static extern uint WTSGetActiveConsoleSessionId();
-        }
-
-"@
-
-}
-
-$Explorer = Get-Process -Name "Explorer" -IncludeUserName -ErrorAction SilentlyContinue
+$Explorer = Get-WmiObject -ComputerName $ComputerName -Query "SELECT SessionId, CreationDate FROM Win32_Process WHERE Name = 'explorer.exe'" -ErrorAction SilentlyContinue
 
 $Result = @()
                    
 if ($null -ne $Explorer) {
 
+    write-host test
+
     if (($Explorer | Measure-Object).Count -gt 0) {
 
-        $WTSActiveSessionID = [SessionInfo]::WTSGetActiveConsoleSessionId()
+        $Sessions = @()
 
-        $LogonUI = Get-Process -Name "LogonUI" -ErrorAction SilentlyContinue
+        ForEach ($Session in (qwinsta /server:$ComputerName | Select-Object -Skip 1)) {
 
-        $Sessions = qwinsta | Select-Object -Skip 1 | ForEach-Object {
+            $Ordered = @{
 
-            @{
-
-                SessionName = $_.Substring(1,18).Trim()
-                ID = $_.Substring(41,5).Trim()
-                State = $_.Substring(48,8).Trim()
+                SessionName = $Session.Substring(1,18).Trim()
+                UserName = $Session.Substring(19,22).Trim()
+                ID = $Session.Substring(41,5).Trim()
+                State = $Session.Substring(48,8).Trim()
 
             }
 
+            $Sessions += New-Object -TypeName PSObject -Property $Ordered
+
         }
 
-        $Explorer | ForEach-Object {
+        ForEach ($Process in $Explorer) {
 
-            $SessionId = $_.SessionId
-            $UserName = $_.UserName
-            $StartTime = $_.StartTime
+            $Locked = ($null -ne (Get-WmiObject -ComputerName $ComputerName -Query "SELECT SessionId FROM Win32_Process WHERE Name = 'logonUI.exe' AND SessionID = '$($Process.SessionId)'" -ErrorAction SilentlyContinue))
 
-            $Session = $Sessions | Where-Object { $_.ID -eq $SessionId }
+            $Session = $Sessions | Where-Object { $_.ID -eq $Process.SessionId }
 
             $Ordered = @{
 
                 "SessionName" = $Session.SessionName 
-                "SessionId" = $SessionId
-                "UserName"  = $UserName
-                "StartTime" = $StartTime
-                "State" = $Session.State            
-                "Locked" = $false
-                "WTSActiveSession" = $false
+                "SessionId" = $Process.SessionId
+                "UserName"  = $Session.UserName
+                "StartTime" = [Management.ManagementDateTimeConverter]::ToDateTime($Process.CreationDate)
+                "State" = $Session.State                             
+                "Locked" = $Locked
 
             }
-
-            if ($null -ne $LogonUI) {
-
-                $Ordered.Locked = ($null -ne ($LogonUI | Where-Object { $_.SessionId -eq $SessionId }))
-
-            }
-
-            $Ordered.WTSActiveSession = ($SessionId -eq $WTSActiveSessionID)
 
             $Result += New-Object -TypeName PSObject -Property $Ordered
 
@@ -75,5 +57,3 @@ if ($null -ne $Explorer) {
     }
 
 }
-
-Return $Result
