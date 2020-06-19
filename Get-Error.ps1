@@ -7,7 +7,7 @@ Param (
 
 $BinaryCode = [Convert]::ToString($Code, 2)
 
-$HexCode = "0x" + [Convert]::ToString($Code, 16)
+$HexCode = "0x$([Convert]::ToString($Code, 16))"
 
 $WindowsMsg = ([ComponentModel.Win32Exception]$Code).Message
 
