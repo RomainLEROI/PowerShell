@@ -30,7 +30,15 @@ $ExportContent | ForEach-Object {
 
     foreach ($Column in $DataTable.columns) {
 
-        $Row.($Column.ColumnName) = $_.($Column.ColumnName)
+        if ($_.($Column.ColumnName -as [DateTime])) {
+
+            $Row.($Column.ColumnName) = [Convert]::ToDateTime($_.($Column.ColumnName)).ToString("dd/MM/yyyy")
+
+        } else {
+
+            $Row.($Column.ColumnName) = $_.($Column.ColumnName)
+
+        }
 
     }
 
