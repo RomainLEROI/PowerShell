@@ -29,14 +29,14 @@
     -> New.esd
 #>
 
-$DISMFile = "${env:ProgramFiles(x86)}\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\DISM\dism.exe"
+$DISMFile = Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath "Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\DISM\dism.exe"
 
-$BaseEsd = Join-Path -Path $PSScriptRoot -ChildPath "FeaturesUpdates.esd"
-$NewEsd = Join-Path -Path $PSScriptRoot -ChildPath "New.esd"
+$BaseEsd = Join-Path -Path $PSScriptRoot -ChildPath "BASE.esd"
+$NewEsd = Join-Path -Path $PSScriptRoot -ChildPath "NEW.esd"
 
-$AdobeFlashUpdate = "$PsScriptRoot\Updates\AdobeFlashUpdate.msu"
-$ServicingUpdate = "$PsScriptRoot\Updates\ServicingUpdate.msu"
-$MonthlyCU = "$PsScriptRoot\Updates\MonthlyCU.msu"
+$AdobeFlashUpdate = Join-Path -Path $PsScriptRoot -ChildPath "Updates\AdobeFlashUpdate.msu"
+$ServicingUpdate = Join-Path -Path $PsScriptRoot -ChildPath "Updates\ServicingUpdate.msu"
+$MonthlyCU = Join-Path -Path $PsScriptRoot -ChildPath "Updates\MonthlyCU.msu"
 
 $AppX = Join-Path -Path $PSScriptRoot -ChildPath "AppX"
 $Sources = Join-Path -Path $PSScriptRoot -ChildPath "SRC"
