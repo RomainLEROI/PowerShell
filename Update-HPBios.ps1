@@ -8,19 +8,19 @@ Update-Bios.xml
 	<!--
  	<FlashTool>HPBIOSUPDREC64</FlashTool>
 	<BiosFile>L71_0146.bin</BiosFile>
-  <BiosType>L71</BiosType>
-  <BiosVersion>01.46</BiosVersion>
+	<BiosType>L71</BiosType>
+	<BiosVersion>01.46</BiosVersion>
 
  	<FlashTool>HpqFlash</FlashTool>
 	<BiosFile>rom.cab</BiosFile>
-  <BiosType>L01</BiosType>
-  <BiosVersion>02.75</BiosVersion>
+	<BiosType>L01</BiosType>
+	<BiosVersion>02.75</BiosVersion>
 	-->
 
  	<FlashTool>HpFirmwareUpdRec64</FlashTool>
 	<BiosFile>Q78_010801.bin</BiosFile>
-  <BiosType>Q78</BiosType>
-  <BiosVersion>01.08.01</BiosVersion>
+	<BiosType>Q78</BiosType>
+	<BiosVersion>01.08.01</BiosVersion>
 
 </Configuration>
 #>
@@ -72,7 +72,7 @@ $TSEnvironment = Get-TSEnvironment
 
 if ($TSEnvironment -ne $Null) {
 
-    $FromTS = $True
+    $FromTS = $true
 
     $Pwd = $TSEnvironment.Value("OSDHPBiosPassword")
 
@@ -80,9 +80,7 @@ if ($TSEnvironment -ne $Null) {
 
 } else {
 
-    $TSEnvironment = $null
-
-    $FromTS = $False
+    $FromTS = $false
             
     $LogFolder = "$env:Windir\Temp"
 
@@ -281,7 +279,6 @@ Try {
                 [Environment]::Exit(90) 
 
             }
-
 
         } else {
 
