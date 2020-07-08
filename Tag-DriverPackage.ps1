@@ -10,8 +10,6 @@ $TagPath = New-Object -TypeName Collections.ArrayList
     
 if (Test-Path $SourcePath) {
 
-    Write-Host "Source Path $SourcePath exists"
-
     foreach ($DriverFolder in (Get-ChildItem -Path $SourcePath -Recurse -Directory -Force)) {
 
         foreach ($Driver in (Get-ChildItem -Path $($DriverFolder.FullName) -Filter "*.inf" -Recurse)) {
@@ -35,7 +33,6 @@ if (Test-Path $SourcePath) {
         Write-Host "Drivers count : $DriverCount"
 
         $Done = 0
-        Write-Progress -Activity "Tagging drivers package" -Status "$Done% done:" -PercentComplete $Done
 
         foreach ($Path in $TagPath) {
    
