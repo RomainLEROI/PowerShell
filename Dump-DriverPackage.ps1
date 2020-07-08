@@ -103,7 +103,7 @@ Function Build-DriverPackage() {
 
                     $PercentDone = [System.Math]::Round((($Done / $DriverCount) * 100), 1, [MidpointRounding]::AwayFromZero)
 
-                    Write-Progress -Activity ("Building driver package") -Status "$PercentDone% done:" -PercentComplete $PercentDone;
+                    Write-Progress -Activity ("Building driver package") -Status "$PercentDone% done:" -PercentComplete $PercentDone
 
                 }
 
