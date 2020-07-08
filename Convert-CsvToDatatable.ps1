@@ -48,7 +48,7 @@ $ExportContent | ForEach-Object {
 
     $PercentDone = [Math]::Round((($Done / $Items) * 100), 1, [MidpointRounding]::AwayFromZero)
 
-    Write-Progress -Activity ("Building DataTable") -Status "$PercentDone% done:" -PercentComplete $PercentDone;
+    Write-Progress -Activity ("Building DataTable") -Status "$PercentDone% done:" -PercentComplete $PercentDone
 
 }
 
