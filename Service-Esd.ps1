@@ -1,6 +1,8 @@
 
 <#
     [-] AppX
+        [+] ...
+        [+] ...
     [-] Branding
         [-] 4K
             img0_768x1024.jpg
@@ -18,11 +20,13 @@
        [-] Wallpaper
             img0.jpg
     [-] Drivers
+        [+] ...
+        [+] ...
     [-] Export
     [-] Mount_Image
     [-] Mount_REImage
     [-] SRC
-        [-] [+]Windows10 ISO content
+        [+] Windows10 ISO content
     [-] Updates
         AdobeFlashUpdate.msu
         ServicingUpdate.msu
