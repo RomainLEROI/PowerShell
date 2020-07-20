@@ -261,11 +261,11 @@ for ($i = 1; $i -le $IndexDic.Count; $i++) {
 
         & $DISMFile /Image:$ImageMountFolder /Add-Driver /Driver:$Drivers /Recurse
 
-        foreach ($app in Get-ChildItem -Path $AppX | Where-Object { $_.Attributes -eq "Directory" }) { 
+        foreach ($App in Get-ChildItem -Path $AppX | Where-Object { $_.Attributes -eq "Directory" }) { 
         
-            Write-Host "`n$([datetime]::Now) Add $($app.Name) AppX" -ForegroundColor Yellow
+            Write-Host "`n$([datetime]::Now) Add $($App.Name) AppX" -ForegroundColor Yellow
                     
-            & $DISMFile /Image:$ImageMountFolder /FolderPath:$($app.FullName)
+            & $DISMFile /AddProvisionedAppxPackage /Image:$ImageMountFolder /FolderPath:$($App.FullName)
             
         }
       
