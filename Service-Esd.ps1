@@ -13,6 +13,8 @@
             img0_2160x3840.jpg
             img0_2560x1600.jpg
             img0_3840x2160.jpg
+       [-] Lockscreen
+            lockscreen.jpg       
        [-] Wallpaper
             img0.jpg
     [-] Drivers
@@ -45,8 +47,6 @@ $Export = Join-Path -Path $PSScriptRoot -ChildPath "Export"
 $ImageMountFolder = Join-Path -Path $PSScriptRoot -ChildPath "Mount_Image"
 $REImageMountFolder = Join-Path -Path $PSScriptRoot -ChildPath "Mount_REImage"
 
-$TargetedIndex = 6
-
 $IndexDic = @{
 
     1 = "Windows Setup Media"
@@ -60,6 +60,8 @@ $IndexDic = @{
     9 = "Windows 10 Professionnel N"
 
 }
+
+$TargetedIndex = 6
 
 $AppsToRemove = @(
 
@@ -160,6 +162,20 @@ for ($i = 1; $i -le $IndexDic.Count; $i++) {
             }   
 
         }
+        
+        $DestFile = Join-Path -Path $ImageMountFolder -ChildPath "Windows\System32\lockscreen.jpg"
+
+        Copy-Item -Path (Join-Path -Path $PSScriptRoot -ChildPath "Branding\Lockscreen\lockscreen.jpg") -Destination $DestFile -Force -ErrorAction SilentlyContinue
+
+        if (Test-Path -Path $DestFile) {
+
+            Write-Host  "$DestFile was successfully copied"
+
+        } else {
+
+            Write-Host "Failed to copy $DestFile" -ForegroundColor Red
+
+        }       
 
         $Targets = @{
 
@@ -216,17 +232,43 @@ for ($i = 1; $i -le $IndexDic.Count; $i++) {
         Set-ItemProperty -Path "HKLM:\OFFLINE\ControlSet001\Services\RemoteRegistry" -Name "Start" -Value 2 -Force | Out-Null
 
         Write-Host "`n$([datetime]::Now) Unmount HKLM\OFFLINE" -ForegroundColor Yellow
-
+        
+        [gc]::Collect()
+        
         reg unload HKLM\OFFLINE
+        
+        Write-Host "`n$([datetime]::Now) Mount offline HKLM\SOFTWARE into online HKLM\OFFLINE" -ForegroundColor Yellow
 
+        reg load HKLM\OFFLINE $ImageMountFolder\Windows\System32\Config\SOFTWARE
+
+        Write-Host "`n$([datetime]::Now) Set Lockscreen image" -ForegroundColor Yellow
+
+        if (!(Test-Path -Path "HKLM:\OFFLINE\Policies\Microsoft\Windows\Personalization")) {
+
+            New-Item -Path "HKLM:\OFFLINE\Policies\Microsoft\Windows\Personalization" -Force | Out-Null
+
+        }
+
+        Set-ItemProperty -Path "HKLM:\OFFLINE\Policies\Microsoft\Windows\Personalization" -Name "LockScreenImage" -Value "C:\Windows\System32\lockscreen.jpg" -Force | Out-Null
+
+        Write-Host "`n$([datetime]::Now) Unmount HKLM\OFFLINE" -ForegroundColor Yellow
+
+        [gc]::Collect()
+
+        reg unload HKLM\OFFLINE       
+        
         Write-Host "`n$([datetime]::Now) Add drivers from $Drivers" -ForegroundColor Yellow
 
         & $DISMFile /Image:$ImageMountFolder /Add-Driver /Driver:$Drivers /Recurse
 
-        Write-Host "`n$([datetime]::Now) Add HP Hotkeys AppX" -ForegroundColor Yellow
-
-        & $DISMFile /Image:$ImageMountFolder /Add-ProvisionedAppxPackage /PackagePath:$AppX\HotKeys\54e424f990bf4d1791240c003ee9d48b.appxbundle /Region="all" /LicensePath:$AppX\HotKeys\54e424f990bf4d1791240c003ee9d48b_License1.xml /dependencypackagepath=$AppX\HotKeys\Microsoft.VCLibs.140.00_14.0.27323.0_arm__8wekyb3d8bbwe.appx /dependencypackagepath=$AppX\HotKeys\Microsoft.VCLibs.140.00_14.0.27323.0_arm64__8wekyb3d8bbwe.appx /DependencyPackagePath=$AppX\HotKeys\Microsoft.VCLibs.140.00_14.0.27323.0_x64__8wekyb3d8bbwe.appx /dependencypackagepath=$AppX\HotKeys\Microsoft.VCLibs.140.00_14.0.27323.0_x86__8wekyb3d8bbwe.appx
-
+        foreach ($app in Get-ChildItem -Path $AppX | Where-Object { $_.Attributes -eq "Directory" }) { 
+        
+            Write-Host "`n$([datetime]::Now) Add $($app.Name) AppX" -ForegroundColor Yellow
+                    
+            & $DISMFile /Image:$ImageMountFolder /FolderPath:$($app.FullName)
+            
+        }
+      
         Write-Host "`n$([datetime]::Now) Add the Servicing Update to the Windows 10 Enterprise image" -ForegroundColor Yellow
 
         & $DISMFile /Image:$ImageMountFolder /Add-Package /PackagePath:$ServicingUpdate
