@@ -1,4 +1,3 @@
-
 Param ( 
 
     [Parameter(Mandatory = $false)]
@@ -17,8 +16,35 @@ Param (
     [Switch] $Start,
 
     [Parameter(ParameterSetName = "Disable", Mandatory = $true)]
-    [Switch] $Stop
+    [Switch] $Stop,
+
+    [Parameter(ParameterSetName = "Create", Mandatory = $true)]
+    [Switch] $Create,
+
+    [Parameter(ParameterSetName = "Create", Mandatory = $true)]
+    [String] $ServiceBinaryPath,
+
+    [Parameter(ParameterSetName = "Create", Mandatory = $false)]
+    [String] $ServiceDisplayName,
+
+    [Parameter(ParameterSetName = "Create", Mandatory = $false)]
+    [ValidateSet("Ignore", "Normal", "Severe", "Critical")]
+    [String] $ServiceErrorControl = "Normal",
+
+    [Parameter(ParameterSetName = "Create")]
+    [ValidateSet("Automatic", "Manual", "Disabled")]
+    [String] $StartMode = "Automatic",
+
+    [Parameter(ParameterSetName = "Create")]
+    [ValidateSet("KernelDriver", "FileSystemDriver", "Adapter", "RecognizerDriver", "Win32OwnProcess", "Win32ShareProcess", "InteractiveProcess")]
+    [String] $ServiceType = "Win32OwnProcess",
+
+    [Parameter(ParameterSetName = "Remove", Mandatory = $true)]
+    [Switch] $Remove
+
 )
+
+
 
 
 $IsElevated = ([Security.Principal.WindowsPrincipal]::New([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
@@ -53,7 +79,7 @@ if ($IsElevated) {
 
                             if (($Service.ChangeStartMode("Automatic")).returnvalue -ne 0) { 
 
-                                Throw "Failed to enable service"
+                                Throw "Failed to enable $ServiceName on $ComputerName"
                             }
 
                         }
@@ -64,7 +90,7 @@ if ($IsElevated) {
 
                             if (($Service.StartService()).returnvalue -ne 0) { 
 
-                                Throw "Failed to start service"
+                                Throw "Failed to start service $ServiceName on $ComputerName"
                             }
 
                         }
@@ -75,23 +101,41 @@ if ($IsElevated) {
 
                             if (($Service.StopService()).returnvalue -ne 0) { 
 
-                                Throw "Failed to stop service"
+                                Throw "Failed to stop service $ServiceName on $ComputerName"
                             }
 
                         }
 
-                    } $Disabled {
+                    } $Disable {
                                 
                         if ($Service.StartMode -ne "Disabled") {
 
                             if (($Service.ChangeStartMode("Disabled")).returnvalue -ne 0) { 
                             
-                                Throw "Failed to disable service"
+                                Throw "Failed to disable service $ServiceName on $ComputerName"
                             }
 
                         }
 
-                    }
+                    } $Remove {
+                                
+                        if ($Service.State -eq "Running") {
+
+                            if (($Service.StopService()).returnvalue -ne 0) { 
+
+                                Throw "Failed to stop service $ServiceName on $ComputerName"
+                            }
+
+                            if (($Service.Delete()).returnvalue -ne 0) { 
+
+                                Throw "Failed to delete service $ServiceName on $ComputerName"
+
+                            }
+
+                        }
+
+                    } 
+
                 }
 
                 $Service = Get-WmiObject -Class Win32_Service -Namespace root\cimv2 -Computername $ComputerName -Filter "name='$ServiceName'" 
@@ -100,7 +144,63 @@ if ($IsElevated) {
 
             } else {
 
-                Write-Warning -Message "No $ServiceName service was found on $ComputerName"
+                if ($Enable -or $Start -or $Stop -or $Disable -or $Remove) {
+
+                    Write-Warning -Message "No $ServiceName service was found on $ComputerName"
+
+                } elseif ($Create) {
+
+                    if ([String]::IsNullOrEmpty($ServiceDisplayName)) {
+
+                        $ServiceDisplayName = $ServiceName
+
+                    }
+
+                    $ServiceTypeTable = @{
+        
+                        KernelDriver = 1
+                        FileSystemDriver = 2
+                        Adapter = 4
+                        RecognizerDriver = 8
+                        Win32OwnProcess = 16
+                        Win32ShareProcess = 32
+
+                    }
+
+                    $ServiceErrorControlTable = @{
+
+                        Ignore = 0
+                        Normal = 1
+                        Severe = 2
+                        Critical = 3
+
+                    }
+
+                    $MasterClass = [wmiclass]"\\$ComputerName\ROOT\CIMV2:Win32_Service"
+
+                    $InParams = $MasterClass.PSBase.GetMethodParameters("Create")
+                    $InParams.Name = $ServiceName
+                    $InParams.DisplayName = $ServiceDisplayName
+                    $InParams.PathName = $ServiceBinaryPath
+                    $InParams.ServiceType = $ServiceTypeTable.$ServiceType
+                    $InParams.ErrorControl = $ServiceErrorControlTable.$ServiceErrorControl
+                    $InParams.StartMode = $StartMode
+                    $InParams.DesktopInteract = $false
+                    $InParams.StartName = $null
+                    $InParams.StartPassword = $null
+                    $InParams.LoadOrderGroup = $null
+                    $InParams.LoadOrderGroupDependencies = $null
+                    $InParams.ServiceDependencies = $null
+
+                    $Result = $MasterClass.PSBase.InvokeMethod("Create", $InParams, $null) 
+
+                    if (($MasterClass.PSBase.InvokeMethod("Create", $InParams, $null)).returnvalue -ne 0) {
+
+                        Throw "Failed to create service $ServiceName on $ComputerName"
+
+                    }
+
+                }
 
             }
 
@@ -121,3 +221,4 @@ if ($IsElevated) {
     Write-Warning -Message "The requested operation requires elevation"
 
 }
+
