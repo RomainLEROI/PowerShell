@@ -17,13 +17,7 @@ Function Scan-PnpDevice {
 
     $Out = @()
 
-    $NamesFilter = @(
-
-        "Microsoft PS/2 Mouse"
-        "Standard PS/2 Keyboard"
-        "PS/2 Compatible Mouse"
-
-    )
+    $NamesFilter = @()
 
     $IDsFilter = @()
 
@@ -160,7 +154,6 @@ Function Scan-PnpDevice {
 }
 
 
-
 $InputContent = Import-Csv -Path (Join-Path -Path $PsScriptRoot -ChildPath "Input.csv") -Delimiter ";"
 
 $OutputContent = Join-Path -Path $PsScriptRoot -ChildPath "Output.csv"
@@ -174,7 +167,6 @@ foreach ($csv in $OutputContents) {
     }
 
 }
-
 
 $Count = ($InputContent | Measure-Object).Count
 
@@ -192,14 +184,11 @@ $Done = 0
 [Void] $DataTable.columns.add("DriverVersion", [String])
 [Void] $DataTable.columns.add("DriverInfName", [String])
 
-
 $Pool = New-Object -TypeName Collections.Generic.List[String]
 
 $PoolLimit = 30
 
-
 Do {
-
 
     if ($Pool.Count -eq 0) {
 
@@ -233,8 +222,7 @@ Do {
         }
 
     }
-
-    
+   
     foreach ($Job in $ArrJobs) {
 
 
@@ -283,7 +271,6 @@ Do {
     }
 
     Start-Sleep -Seconds 1
-
 
 } while ($Done -ne $Count) 
 
