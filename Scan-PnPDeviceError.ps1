@@ -4,9 +4,9 @@ ComputerName;Model
 #>
 
 
-$InputContent = Import-Csv -Path "$PsScriptRoot\Input.csv" -Delimiter ";"
+$InputContent = Import-Csv -Path (Join-Path -Path $PsScriptRoot -ChildPath "Input.csv") -Delimiter ";"
 
-$OutputContents = @("Output_PnpErrorCount.csv", "Output_PnpErrorDetails.csv")
+$OutputContent = Join-Path -Path $PsScriptRoot -ChildPath "Output.csv"
 
 foreach ($csv in $OutputContents) {
 
@@ -133,5 +133,5 @@ foreach ($Obj in $InputContent) {
 }
 
 
-$DataTable | Export-Csv -Path "$PsScriptRoot\Output.csv" -NoTypeInformation
+$DataTable | Export-Csv -Path $OutputContent -NoTypeInformation
 
