@@ -115,7 +115,7 @@ foreach ($Obj in $InputContent) {
             $Row.Name = $Obj.ComputerName
             $Row.Model = $Obj.Model
             $Row.Status = "Offline"
-            $Row.PnpErrorCount = $PnpErrorCount
+            $Row.PnpErrorCount = [String]::Empty
             $Row.DeviceName = [String]::Empty
             $Row.DeviceID = [String]::Empty
             $Row.DeviceSatus = [String]::Empty
