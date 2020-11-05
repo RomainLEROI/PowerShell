@@ -3,8 +3,6 @@ Input.csv
 ComputerName;Model
 #>
 
-
-
 Function Scan-PnpDevice {
 
     Param(
