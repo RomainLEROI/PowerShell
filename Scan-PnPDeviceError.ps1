@@ -206,8 +206,6 @@ Do {
 
         for ($i = $Done; $i -lt ($PoolCount + $Done); $i++) {
 
-            Write-Host "Adding $($InputContent[$i].ComputerName) to pool"
-
             $Invoked = @{
 
                 ComputerName = $InputContent[$i].ComputerName
@@ -225,10 +223,8 @@ Do {
    
     foreach ($Job in $ArrJobs) {
 
-
         if ($Pool.Contains($Job.ComputerName)) {
                   
-
             if (!((Get-Job -Name $Job.ComputerName).State).Contains("Running")) { 
 
                 $PnPInformations = Receive-Job -Job $Job.Job
@@ -251,8 +247,6 @@ Do {
                     $DataTable.Rows.Add($Row)
 
                 }
-
-                Write-Host "$($Job.ComputerName) completed"
 
                 Remove-Job -Job $Job.Job
 
