@@ -59,7 +59,6 @@ Function Scan-PnpDevice {
 
                 }
 
-
                 $FaultyDrivers = Get-WmiObject -ComputerName $ComputerName -ClassName Win32_PnPSignedDriver -ErrorAction SilentlyContinue | Where-Object { ($_.DeviceID -eq $FaultDevice.PNPDeviceID) } | Select-Object DeviceName, DriverVersion, InfName, Manufacturer
 
                 if (($FaultyDrivers | Measure-Object).Count -gt 0) {
@@ -111,9 +110,6 @@ Function Scan-PnpDevice {
                     $Out += $Details
 
                 }
-
-
-
 
             }
 
