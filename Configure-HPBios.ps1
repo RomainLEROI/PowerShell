@@ -35,17 +35,21 @@ $BiosConfig = @{
     12 = "OS Management of TPM : Enable"
     13 = "OS management of Embedded Security Device : Enable"
     14 = "Activate TPM On Next Boot : Enable"
-    15 = "Activate Embedded Security On Next Boot : Enable"
-
+    15 = "Activate Embedded Security On Next Boot : Enable"   
+    16  = "Prompt for Admin password on F9 (Boot Menu) : Enable"
+    17  = "Prompt for Admin password on F11 (System Recovery) : Enable"
+    18  = "Prompt for Admin password on F12 (Network Boot) : Enable"
+    19  = "Password Prompt On F9 & F12 : Enable"
+    20  = "Password prompt on F9 F11 & F12 : Enable"
+    21  = "Prompt for Admin authentication on F9 (Boot Menu) : Enable"
+    22  = "Prompt for Admin authentication on F11 (System Recovery) : Enable"
+    23  = "Prompt for Admin authentication on F12 (Network Boot) : Enable"
+    
 }
 
-Configure-HPBios.ps1 -BiosConfig $BiosConfig -Password $Password
 #>
 
 Param (
-
-    [Parameter(Mandatory = $true)]
-    [HashTable] $BiosConfig,
 
     [Parameter(Mandatory = $false)]
     [String] $Password = [String]::Empty,
